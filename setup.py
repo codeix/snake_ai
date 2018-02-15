@@ -54,7 +54,8 @@ setup(name='snake_ai',
       ],
       entry_points={
           'console_scripts': [
-              'snake = snake_ai.console:run'
+              'play = snake_ai.console:play',
+              'ai = snake_ai.console.ai'
           ],
       },
       )
