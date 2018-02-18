@@ -35,6 +35,12 @@ class Game(object):
         self.apple()
         self.init_snake()
 
+    def state(self):
+        for t in (FIELD_SNAKE, FIELD_WALL, FIELD_APPLE):
+            output = list()
+            for i in range(self.width):
+                for j in range(self.height):
+                    yield self.field[i][j] == t
 
 
     def apple(self):

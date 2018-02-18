@@ -1,7 +1,8 @@
 import sys
-
+from random import random
 from snake_ai.widget import  SnakeGui
 from snake_ai.game import Game
+from snake_ai.brain import Player
 
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtCore import QTimer, Qt
@@ -39,6 +40,37 @@ def play():
     timer.start()
 
     sg.keylistener = keylistener
+    sg.show()
+    sys.exit(app.exec_())
+
+
+
+def ai():
+    app = QApplication(sys.argv)
+    
+    players = list()
+    timers = list()
+
+    sg = None
+    for index in range(12): 
+        player = Player()
+        players.append(player)
+        def processor():
+            if not player.step():
+                print('Game over')
+                print('Score: %s' % player.game.score)
+                #sys.exit()
+            sg.update()
+
+        timer = QTimer()
+        timer.setInterval(1000)
+        timer.timeout.connect(processor)
+        timers.append(timer)
+    
+    sg = SnakeGui([p.game for p in players])
+    for timer in timers:
+        timer.start()
+
     sg.show()
     sys.exit(app.exec_())
 
