@@ -11,10 +11,8 @@ class Player(object):
         self.brain.random()
 
     def step(self):
-        out = self.brain.apply(list(self.game.state()))
-        print(out)
+        out = self.brain.apply(self.game.state())
         direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out))
-        print(max(direction, key=direction.get))
         max(direction, key=direction.get)()
         return self.game.move()
 
