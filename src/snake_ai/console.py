@@ -1,6 +1,7 @@
 import sys
 import threading
 
+from copy import deepcopy
 from random import random
 from snake_ai.widget import  SnakeGui
 from snake_ai.game import Game
@@ -46,25 +47,52 @@ def play():
     sys.exit(app.exec_())
 
 
-
+winner = None
 def ai():
     app = QApplication(sys.argv)
-    
-    players = list()
-    threads = list()
+    gen = 0    
 
-    for index in range(12): 
-        player = Player()
-        players.append(player)
-        threads.append(Processor(player))
-    
-    sg = SnakeGui([p.game for p in players])
-    for thread in threads:
-        thread.sg = sg
-        thread.start()
+    while True:
+ 
+        gen += 1
+        players = list()
+        threads = list()
 
-    sg.show()
-    sys.exit(app.exec_())
+        for index in range(12): 
+            brain = None
+            if winner is not None:
+                brain = deepcopy(winner.brain)
+                brain.random(index)
+            player = Player(brain)
+            players.append(player)
+            threads.append(Processor(player))
+    
+        sg = SnakeGui([p.game for p in players])
+        for thread in threads:
+            thread.sg = sg
+            thread.start()
+
+        sg.show()
+    
+        helper = ThreadHelper(threads, sg)
+        helper.start()
+        app.exec_()
+        print('Gen: %s, The winner is: %s' % (gen, winner))
+
+    
+
+
+class ThreadHelper(threading.Thread):
+
+    def __init__(self, threads, sg):
+        super().__init__()
+        self.threads = threads
+        self.sg = sg
+
+    def run(self):
+        for thread in self.threads:
+            thread.join()
+        self.sg.close()
 
 
 class Processor(threading.Thread):
@@ -80,7 +108,11 @@ class Processor(threading.Thread):
         if not self.player.step():
             print('Game over')
             print('Score: %s' % self.player.game.score)
-            
+            global winner
+            if winner is None:
+                winner = self.player
+            elif winner.game.score < self.player.game.score:
+                 winner = self.player
             return
         self.sg.update()
         self.run()

@@ -24,7 +24,7 @@ class SnakeGui(QWidget):
         
         
     def initUI(self):      
-        self.setGeometry(300, 300, 280, 170)
+        self.setGeometry(300, 300, 2000, 1700)
         self.setWindowTitle('Snake Playing Game')
         
         layout = QGridLayout()

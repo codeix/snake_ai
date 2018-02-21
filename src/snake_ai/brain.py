@@ -5,10 +5,13 @@ from snake_ai.game import Game
 
 class Player(object):
 
-    def __init__(self):
+    def __init__(self, brain = None):
         self.game = Game(30, 25)
-        self.brain = Brain([30*25*3, 4])
-        self.brain.random()
+        if brain is None:
+            self.brain = Brain([30*25*3, 50, 4])
+            self.brain.random()
+        else:
+            self.brain = brain
 
     def step(self):
         out = self.brain.apply(self.game.state())
@@ -21,11 +24,9 @@ class Player(object):
 
 class Brain(object):
     
-    neurons = list()
-    layers = list()
-
-
     def __init__(self, layers):
+        self.neurons = list()
+        self.layers = list()
         layers.reverse()
         for layer_size in layers:
             li = list()
@@ -50,22 +51,28 @@ class Brain(object):
 
     def apply(self, inputs):
         self.reset()
-         
+
         for index, value in enumerate(inputs):
             self.layers[0][index].apply(value)
-       
+
+        len(self.layers)
         for layer in self.layers:
             for neuron in layer:
                 neuron.submit()
-
 
         output = self.layers[-1:][0]
         return tuple([i.value/i.max_weight for i in output])
          
 
-    def random(self):
+    def random(self, percentage=None):
         for neuron in self.neurons:
-            neuron.random()
+            neuron.random(percentage)
+    
+
+    def set_weights(self, value):
+       for neuron in self.neurons:
+            neuron.set_weights(value)
+
 
     def reset(self):
         for neuron in self.neurons:
@@ -74,11 +81,11 @@ class Brain(object):
 
 class Neuron(object):
     
-    weights = None
-    value = 0
-    max_weight = 0
-
     def __init__(self, parents):
+        self.weights = None
+        self.value = 0
+        self.max_weight = 0
+
         if parents is not None:
             self.weights = dict()
             for parent in parents:
@@ -89,11 +96,25 @@ class Neuron(object):
         self.value = 0
 
 
-    def random(self):
+    def random(self, percentage):
         if self.weights is None:
             return
         for k in self.weights.keys():
-            self.weights[k] = random()
+            if percentage is None:
+                self.weights[k] = random()
+            else:
+                new = random()
+                new = new + (random()/100*percentage) - (20/100.0/2)
+                new = min(new, 1)
+                new = max(new, 0)
+                self.weights[k] = new
+
+
+    def set_weights(self, value):
+        if self.weights is None:
+            return
+        for k in self.weights.keys():
+            self.weights[k] = value
 
 
     def apply(self, value):
@@ -105,5 +126,6 @@ class Neuron(object):
             return
         for neuron, weight in self.weights.items():
             neuron.apply(self.value * weight)
+
 
 
