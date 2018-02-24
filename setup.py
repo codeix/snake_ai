@@ -47,6 +47,7 @@ setup(name='snake_ai',
       install_requires=[
           'setuptools',
           'PyQt5',
+          'numpy',
           # -*- Extra requirements: -*-
       ],
       tests_require=[

@@ -9,6 +9,7 @@ from snake_ai.brain import Player
 
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtCore import QTimer, Qt
+import numpy as np
 
 
 
@@ -107,10 +108,12 @@ class Processor(threading.Thread):
 
         if not self.player.step():
             print('Game over')
-            print('Score: %s' % self.player.game.score)
+            print('Score: %s Variance: %s' % (self.player.game.score, np.var(self.player.lastout)))
             global winner
             if winner is None:
                 winner = self.player
+            elif np.var(self.player.lastout) > 1.5:
+                return
             elif winner.game.score < self.player.game.score:
                  winner = self.player
             return
