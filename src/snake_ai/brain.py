@@ -106,7 +106,7 @@ class Neuron(object):
                 self.weights[k] = random()
             else:
                 new = random()
-                new = new + (random()/100*percentage) - (20/100.0/2)
+                new = self.weights[k] + (random()/100*percentage) - (percentage/100.0/2)
                 new = min(new, 1)
                 new = max(new, 0)
                 self.weights[k] = new
