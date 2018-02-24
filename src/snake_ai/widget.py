@@ -31,18 +31,29 @@ class SnakeGui(QWidget):
         self.setGeometry(300, 300, 2000, 1700)
         self.setWindowTitle('Snake Playing Game')
         
-        layout = QGridLayout()
-
         x = math.sqrt(len(self.canvas))
         y = x if x % 1 == 0 else x + 1 
         
         temp_canvas = [] + self.canvas
+
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
+
         for ix in range(int(x)):
             for iy in range(int(y)):
                 if not len(temp_canvas):
                     continue
-                layout.addWidget(temp_canvas.pop(), ix, iy)
-        self.setLayout(layout)
+                self.layout.addWidget(temp_canvas.pop(), ix, iy)
+
+
+    def setGames(self, games):
+        temp = games + []
+        if self.layout is not None:
+            while self.layout.count():
+                item = self.layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.game = temp.pop()
 
 
     def keyPressEvent(self, event):

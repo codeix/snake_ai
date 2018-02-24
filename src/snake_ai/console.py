@@ -50,9 +50,9 @@ def play():
 
 winner = None
 def ai():
-    app = QApplication(sys.argv)
     gen = 0    
 
+    ui_helper = None
     while True:
  
         gen += 1
@@ -67,17 +67,21 @@ def ai():
             player = Player(brain)
             players.append(player)
             threads.append(Processor(player))
-    
-        sg = SnakeGui([p.game for p in players])
+        
+        if ui_helper is None:
+            ui_helper = ThreadHelper(players)
+            ui_helper.start()
+        else:
+            ui_helper.update(players)
+
+        ui_helper.event.wait()
         for thread in threads:
-            thread.sg = sg
+            thread.sg = ui_helper.sg
             thread.start()
 
-        sg.show()
+        for thread in threads:
+            thread.join()
     
-        helper = ThreadHelper(threads, sg)
-        helper.start()
-        app.exec_()
         print('Gen: %s, The winner is: %s' % (gen, winner))
 
     
@@ -85,15 +89,22 @@ def ai():
 
 class ThreadHelper(threading.Thread):
 
-    def __init__(self, threads, sg):
+    def __init__(self, players):
         super().__init__()
-        self.threads = threads
-        self.sg = sg
+        self.players = players
+        self.event = threading.Event()
+        self.event.clear()
+
+    def update(self, players):
+        self.players = players
+        self.sg.setGames([p.game for p in players])
 
     def run(self):
-        for thread in self.threads:
-            thread.join()
-        self.sg.close()
+        app = QApplication(sys.argv)
+        self.sg = SnakeGui([p.game for p in self.players])
+        self.event.set()
+        self.sg.show()
+        app.exec_()
 
 
 class Processor(threading.Thread):
