@@ -13,17 +13,21 @@ class SnakeGui(QWidget):
     
     def __init__(self, games):
         super().__init__()
-       
+        self.setGeometry(300, 300, 2000, 1700)
+        self.setWindowTitle('Snake Playing Game')
+
         if not isinstance(games, (list, tuple)):
             games = [games]
 
-        self.games = games 
-        self.canvas = [GameCanvas(g) for g in self.games]
+        self.games = None 
+        self.canvas = None
         self.keylistener = None
-        self.initUI()
+        self.initUI(games)
         
         
-    def initUI(self):      
+    def initUI(self, games):
+        self.games = games
+        self.canvas = [GameCanvas(g) for g in self.games]
         self.setGeometry(300, 300, 2000, 1700)
         self.setWindowTitle('Snake Playing Game')
         

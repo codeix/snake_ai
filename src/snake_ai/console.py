@@ -63,7 +63,7 @@ def ai():
             brain = None
             if winner is not None:
                 brain = deepcopy(winner.brain)
-                brain.random(index)
+                brain.random(index ** 2)
             player = Player(brain)
             players.append(player)
             threads.append(Processor(player))
@@ -108,12 +108,15 @@ class Processor(threading.Thread):
 
         if not self.player.step():
             print('Game over')
-            print('Score: %s Variance: %s' % (self.player.game.score, np.var(self.player.lastout)))
+            print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
             global winner
+            if len(self.player.used_directions) < 2:
+                return
             if winner is None:
                 winner = self.player
-            elif np.var(self.player.lastout) > 1.5:
-                return
+            elif winner.used_directions < self.player.used_directions:
+                print(winner.used_directions +'/'+ self.player.used_directions)
+                winner = self.player
             elif winner.game.score < self.player.game.score:
                  winner = self.player
             return
