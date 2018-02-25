@@ -59,11 +59,11 @@ def ai():
         players = list()
         threads = list()
 
-        for index in range(12): 
+        for index in range(100): 
             brain = None
             if winner is not None:
                 brain = deepcopy(winner.brain)
-                brain.random(index ** 2)
+                brain.random((index**4)/(10**4)*index)
             player = Player(brain)
             players.append(player)
             threads.append(Processor(player))
@@ -125,10 +125,11 @@ class Processor(threading.Thread):
                 return
             if winner is None:
                 winner = self.player
-            elif winner.used_directions < self.player.used_directions:
-                print(winner.used_directions +'/'+ self.player.used_directions)
+            elif len(winner.used_directions) < len(self.player.used_directions):
+                print('best used direction: %s/%s' % (len(winner.used_directions), len(self.player.used_directions)))
                 winner = self.player
             elif winner.game.score < self.player.game.score:
+                 print('best score: %s/%s' % (winner.game.score, self.player.game.score))
                  winner = self.player
             return
         self.sg.update()

@@ -49,8 +49,8 @@ class SnakeGui(QWidget):
     def setGames(self, games):
         temp = games + []
         if self.layout is not None:
-            while self.layout.count():
-                item = self.layout.takeAt(0)
+            for i in range(self.layout.count()):
+                item = self.layout.itemAt(i)
                 widget = item.widget()
                 if widget is not None:
                     widget.game = temp.pop()
