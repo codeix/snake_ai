@@ -23,8 +23,8 @@ class SnakeGui(QWidget):
         self.canvas = None
         self.keylistener = None
         self.initUI(games)
-        
-        
+       
+
     def initUI(self, games):
         self.games = games
         self.canvas = [GameCanvas(g) for g in self.games]

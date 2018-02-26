@@ -1,5 +1,6 @@
 import sys
 import threading
+from multiprocessing import Process, Manager
 
 from copy import deepcopy
 from random import random
@@ -53,28 +54,35 @@ def ai():
     gen = 0    
 
     ui_helper = None
-    while True:
- 
+    gns = Manager().Namespace()
+    gns.winner = None
+
+    while True: 
         gen += 1
         players = list()
         threads = list()
 
-        for index in range(100): 
+        for index in range(50): 
             brain = None
-            if winner is not None:
-                brain = deepcopy(winner.brain)
+            if gns.winner is not None:
+                brain = gns.winner.brain
                 brain.random((index**4)/(10**4)*index)
             player = Player(brain)
-            players.append(player)
-            threads.append(Processor(player))
+            manager = Manager()
+            ns = manager.Namespace()
+            ns.game = player.game
+            ns.used_directions = player.used_directions
+            ns.test = 0
+            players.append(ns)
+            threads.append(Processor(ns, gns, player))
         
         if ui_helper is None:
             ui_helper = ThreadHelper(players)
             ui_helper.start()
+            ui_helper.event.wait()
         else:
             ui_helper.update(players)
 
-        ui_helper.event.wait()
         for thread in threads:
             thread.sg = ui_helper.sg
             thread.start()
@@ -82,9 +90,8 @@ def ai():
         for thread in threads:
             thread.join()
     
-        print('Gen: %s, The winner is: %s' % (gen, winner))
+        print('Gen: %s, The winner is: %s' % (gen, gns.winner))
 
-    
 
 
 class ThreadHelper(threading.Thread):
@@ -97,43 +104,56 @@ class ThreadHelper(threading.Thread):
 
     def update(self, players):
         self.players = players
-        self.sg.setGames([p.game for p in players])
+        self.sg.update()
+
+    def timer(self):
+        self.sg.setGames([ns.game for ns in self.players])
+        self.sg.update()
+
 
     def run(self):
         app = QApplication(sys.argv)
-        self.sg = SnakeGui([p.game for p in self.players])
-        self.event.set()
+        self.sg = SnakeGui([ns.game for ns in self.players])
         self.sg.show()
+        self.event.set()
+        timer = QTimer()
+        timer.timeout.connect(self.timer)
+        timer.start(100)
         app.exec_()
 
 
-class Processor(threading.Thread):
+class Processor(Process):
 
     sg = None
 
-    def __init__(self, player):
+    def __init__(self, ns, gns, player):
         super().__init__()
+        self.ns = ns
+        self.gns = gns
         self.player = player
 
     def run(self):
+        while True:
+            ret = self.player.step()
+            self.ns.test += 1
+            self.ns.game = self.player.game
+            self.ns.used_directions = self.player.used_directions
 
-        if not self.player.step():
-            print('Game over')
-            print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
-            global winner
-            if len(self.player.used_directions) < 2:
+            if not ret:
+                winner = self.gns.winner
+                print('Game over')
+                print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
+                if len(self.player.used_directions) < 2:
+                    return
+                if winner is None:
+                    self.gns.winner = self.player
+                elif len(winner.used_directions) < len(self.player.used_directions):
+                    print('best used direction: %s/%s' % (len(winner.used_directions), len(self.player.used_directions)))
+                    self.gns.winner = self.player
+                elif winner.game.score < self.player.game.score:
+                    print('best score: %s/%s' % (winner.game.score, self.player.game.score))
+                    self.gns.winner = self.player
                 return
-            if winner is None:
-                winner = self.player
-            elif len(winner.used_directions) < len(self.player.used_directions):
-                print('best used direction: %s/%s' % (len(winner.used_directions), len(self.player.used_directions)))
-                winner = self.player
-            elif winner.game.score < self.player.game.score:
-                 print('best score: %s/%s' % (winner.game.score, self.player.game.score))
-                 winner = self.player
-            return
-        self.sg.update()
-        self.run()
 
 
 
