@@ -59,7 +59,7 @@ def ai():
         players = list()
         threads = list()
 
-        for index in range(100): 
+        for index in range(5): 
             brain = None
             if winner is not None:
                 brain = deepcopy(winner.brain)

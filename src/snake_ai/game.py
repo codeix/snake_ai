@@ -1,3 +1,4 @@
+import uuid
 import operator
 from random import random
 
@@ -18,6 +19,7 @@ SNAKE_INIT_GROW = 3
 class Game(object):
 
     def __init__(self, width, height):
+        self.uuid = uuid.uuid1()
         self.width = width
         self.height = height
         self.score = 0

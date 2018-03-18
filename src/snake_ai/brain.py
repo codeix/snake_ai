@@ -1,3 +1,4 @@
+import uuid
 from random import random
 from snake_ai.game import Game
 
@@ -6,6 +7,7 @@ from snake_ai.game import Game
 class Player(object):
 
     def __init__(self, brain = None):
+        self.uuid = uuid.uuid1()
         self.game = Game(30, 25)
         self.used_directions = set()
         if brain is None:
@@ -13,6 +15,12 @@ class Player(object):
             self.brain.random()
         else:
             self.brain = brain
+
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        del state['brain']
+        return state
+
 
     def step(self):
         out = self.brain.apply(self.game.state())
