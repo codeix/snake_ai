@@ -1,5 +1,6 @@
 import sys
 import threading
+import multiprocessing
 
 from copy import deepcopy
 from random import random
@@ -114,28 +115,47 @@ class Processor(threading.Thread):
     def __init__(self, player):
         super().__init__()
         self.player = player
+        self.queue = multiprocessing.Queue()
+        self.worker = ProcessorWorker(player, self.queue)
 
     def run(self):
-
-        if not self.player.step():
-            print('Game over')
-            print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
-            global winner
-            if len(self.player.used_directions) < 2:
+        self.worker.run()
+        while True:
+            try
+                self.player = self.queue.get()
+            except IOError:
+                print('Game over')
+                print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
+                global winner
+                if len(self.player.used_directions) < 2:
+                    return
+                if winner is None:
+                    winner = self.player
+                elif len(winner.used_directions) < len(self.player.used_directions):
+                    print('best used direction: %s/%s' % (len(winner.used_directions), len(self.player.used_directions)))
+                    winner = self.player
+                elif winner.game.score < self.player.game.score:
+                    print('best score: %s/%s' % (winner.game.score, self.player.game.score))
+                    winner = self.player
                 return
-            if winner is None:
-                winner = self.player
-            elif len(winner.used_directions) < len(self.player.used_directions):
-                print('best used direction: %s/%s' % (len(winner.used_directions), len(self.player.used_directions)))
-                winner = self.player
-            elif winner.game.score < self.player.game.score:
-                 print('best score: %s/%s' % (winner.game.score, self.player.game.score))
-                 winner = self.player
-            return
-        self.sg.update()
-        self.run()
+            self.sg.update()
 
 
+class ProcessorWorker(multiprocessing.Process):
+
+    def __init__(self, player, queue):
+        super().__init__()
+        self.player = player
+        self.queue = queue
+
+
+    def run(self):
+        while True:
+            re = self.player.run()
+            self.queue.put(self.player)
+            if re is None:
+                self.queue.close()
+                break
 
 
 
