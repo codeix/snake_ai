@@ -70,7 +70,7 @@ class MainAI(object):
             gen += 1
             threads = list()
 
-            for index in range(100): 
+            for index in range(30): 
                 brain = None
                 if self.winner is not None:
                     brain = deepcopy(self.winner.brain)
