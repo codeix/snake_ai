@@ -58,7 +58,7 @@ class MainAI(object):
 
     def __init__(self):
         self.winner = None
-        self.players = collections.OrderedDict()
+        self.players = None
 
 
     def run(self):
@@ -66,7 +66,7 @@ class MainAI(object):
 
         ui_helper = None
         while True:
-
+            self.players = collections.OrderedDict()
             gen += 1
             threads = list()
 
