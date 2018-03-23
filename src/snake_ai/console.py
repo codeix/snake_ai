@@ -1,6 +1,7 @@
 import sys
 import threading
 import multiprocessing
+import collections
 
 from copy import deepcopy
 from random import random
@@ -49,41 +50,50 @@ def play():
     sys.exit(app.exec_())
 
 
-winner = None
 def ai():
-    gen = 0    
+    MainAI().run()
 
-    ui_helper = None
-    while True:
- 
-        gen += 1
-        players = list()
-        threads = list()
 
-        for index in range(5): 
-            brain = None
-            if winner is not None:
-                brain = deepcopy(winner.brain)
-                brain.random((index**4)/(10**4)*index)
-            player = Player(brain)
-            players.append(player)
-            threads.append(Processor(player))
+class MainAI(object):
+
+    def __init__(self):
+        self.winner = None
+        self.players = collections.OrderedDict()
+
+
+    def run(self):
+        gen = 0    
+
+        ui_helper = None
+        while True:
+
+            gen += 1
+            threads = list()
+
+            for index in range(100): 
+                brain = None
+                if self.winner is not None:
+                    brain = deepcopy(self.winner.brain)
+                    brain.random((index**4)/(10**4)*index)
+                player = Player(brain)
+                self.players[player.uuid] = player
+                threads.append(Processor(player, self))
         
-        if ui_helper is None:
-            ui_helper = ThreadHelper(players)
-            ui_helper.start()
-        else:
-            ui_helper.update(players)
+            if ui_helper is None:
+                ui_helper = ThreadHelper(self.players)
+                ui_helper.start()
+            else:
+                ui_helper.update(self.players)
 
-        ui_helper.event.wait()
-        for thread in threads:
-            thread.sg = ui_helper.sg
-            thread.start()
+            ui_helper.event.wait()
+            for thread in threads:
+                thread.sg = ui_helper.sg
+                thread.start()
 
-        for thread in threads:
-            thread.join()
+            for thread in threads:
+                thread.join()
     
-        print('Gen: %s, The winner is: %s' % (gen, winner))
+            print('Gen: %s, The winner is: %s' % (gen, self.winner))
 
     
 
@@ -98,11 +108,11 @@ class ThreadHelper(threading.Thread):
 
     def update(self, players):
         self.players = players
-        self.sg.setGames([p.game for p in players])
+        self.sg.setGames([p.game for p in players.values()])
 
     def run(self):
         app = QApplication(sys.argv)
-        self.sg = SnakeGui([p.game for p in self.players])
+        self.sg = SnakeGui([p.game for p in self.players.values()])
         self.event.set()
         self.sg.show()
         app.exec_()
@@ -112,31 +122,35 @@ class Processor(threading.Thread):
 
     sg = None
 
-    def __init__(self, player):
+    def __init__(self, player, main):
         super().__init__()
         self.player = player
+        self.main = main
         self.queue = multiprocessing.Queue()
         self.worker = ProcessorWorker(player, self.queue)
 
     def run(self):
-        self.worker.run()
+        self.worker.start()
         while True:
-            try
-                self.player = self.queue.get()
-            except IOError:
+            re = self.queue.get()
+            if isinstance(re, Player):
+                self.player = re
+                self.main.players[self.player.uuid] = self.player
+                self.sg.setGames([p.game for p in self.main.players.values()])
+            else:
+                self.player.brain = re
                 print('Game over')
                 print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
-                global winner
                 if len(self.player.used_directions) < 2:
                     return
-                if winner is None:
-                    winner = self.player
-                elif len(winner.used_directions) < len(self.player.used_directions):
-                    print('best used direction: %s/%s' % (len(winner.used_directions), len(self.player.used_directions)))
-                    winner = self.player
-                elif winner.game.score < self.player.game.score:
-                    print('best score: %s/%s' % (winner.game.score, self.player.game.score))
-                    winner = self.player
+                if self.main.winner is None:
+                    self.main.winner = self.player
+                elif len(self.main.winner.used_directions) < len(self.player.used_directions):
+                    print('best used direction: %s/%s' % (len(self.main.winner.used_directions), len(self.player.used_directions)))
+                    self.main.winner = self.player
+                elif self.main.winner.game.score < self.player.game.score:
+                    print('best score: %s/%s' % (self.main.winner.game.score, self.player.game.score))
+                    self.main.winner = self.player
                 return
             self.sg.update()
 
@@ -151,9 +165,10 @@ class ProcessorWorker(multiprocessing.Process):
 
     def run(self):
         while True:
-            re = self.player.run()
+            re = self.player.step()
             self.queue.put(self.player)
-            if re is None:
+            if not re:
+                self.queue.put(self.player.brain)
                 self.queue.close()
                 break
 
