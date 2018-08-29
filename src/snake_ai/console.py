@@ -60,6 +60,8 @@ def ai():
 
 
 class MainAI(object):
+     
+    amount_process = 4
 
     def __init__(self):
         self.winner = None
@@ -69,16 +71,17 @@ class MainAI(object):
         gen = 0
         ui_helper = None
         while True:
-            import pdb;pdb.set_trace()
+    #        import pdb;pdb.set_trace()
 
             self.players.clear()
             gen += 1
             threads = list()
-            for index in range(30): 
+            for index in range(self.amount_process): 
                 brain = None
                 if self.winner is not None:
                     brain = deepcopy(self.winner.brain)
-                    brain.random((index**4)/(10**4)*index)
+                    index = float(index)
+                    brain.random((index**2/self.amount_process**2)*100)
                 player = Player(brain)
                 self.players[player.uuid] = player
                 threads.append(Processor(player, self))
@@ -144,7 +147,7 @@ class Processor(threading.Thread):
                 self.player.brain = re
                 print('Game over')
                 print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
-                if len(self.player.used_directions) < 2:
+                if len(self.player.used_directions) < 1:
                     break
                 if self.main.winner is None:
                     self.main.winner = self.player
@@ -163,17 +166,21 @@ class Processor(threading.Thread):
 
 class ProcessorWorker(multiprocessing.Process):
 
+    counter_static = dict(foo=0)
+
     def __init__(self, player, queue):
         super().__init__()
+        self.counter = self.counter_static['foo'] = self.counter_static['foo'] + 1
         self.player = player
         self.queue = queue
 
 
     def run(self):
+        print('worker thread %s before queue' % self.counter)
         while True:
             self.queue.empty()
             re = self.player.step()
-            print(self, 'step')
+        #    print('worker thread %s  after queue' % self.counter)
             if re:
                 self.queue.put(self.player)
             else:
