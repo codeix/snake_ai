@@ -46,8 +46,9 @@ setup(name='snake_ai',
       test_suite='__main__.alltests', 
       install_requires=[
           'setuptools',
-          'PyQt5',
+          'pyqt5==5.10',
           'numpy',
+          'pympler',
           # -*- Extra requirements: -*-
       ],
       tests_require=[

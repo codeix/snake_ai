@@ -1,4 +1,5 @@
 import sys
+import gc
 import threading
 import multiprocessing
 import collections
@@ -13,7 +14,11 @@ from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtCore import QTimer, Qt
 import numpy as np
 
+from pympler import tracker
+from pympler import muppy
+from pympler import summary
 
+from pympler import asizeof
 
 def play():
 
@@ -58,18 +63,17 @@ class MainAI(object):
 
     def __init__(self):
         self.winner = None
-        self.players = None
-
+        self.players = collections.OrderedDict()
 
     def run(self):
-        gen = 0    
-
+        gen = 0
         ui_helper = None
         while True:
-            self.players = collections.OrderedDict()
+            import pdb;pdb.set_trace()
+
+            self.players.clear()
             gen += 1
             threads = list()
-
             for index in range(30): 
                 brain = None
                 if self.winner is not None:
@@ -78,13 +82,12 @@ class MainAI(object):
                 player = Player(brain)
                 self.players[player.uuid] = player
                 threads.append(Processor(player, self))
-        
+ 
             if ui_helper is None:
                 ui_helper = ThreadHelper(self.players)
                 ui_helper.start()
             else:
                 ui_helper.update(self.players)
-
             ui_helper.event.wait()
             for thread in threads:
                 thread.sg = ui_helper.sg
@@ -92,7 +95,7 @@ class MainAI(object):
 
             for thread in threads:
                 thread.join()
-    
+
             print('Gen: %s, The winner is: %s' % (gen, self.winner))
 
     
@@ -142,7 +145,7 @@ class Processor(threading.Thread):
                 print('Game over')
                 print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
                 if len(self.player.used_directions) < 2:
-                    return
+                    break
                 if self.main.winner is None:
                     self.main.winner = self.player
                 elif len(self.main.winner.used_directions) < len(self.player.used_directions):
@@ -151,8 +154,11 @@ class Processor(threading.Thread):
                 elif self.main.winner.game.score < self.player.game.score:
                     print('best score: %s/%s' % (self.main.winner.game.score, self.player.game.score))
                     self.main.winner = self.player
-                return
+                break
             self.sg.update()
+
+        self.queue.close()
+        self.worker.join()
 
 
 class ProcessorWorker(multiprocessing.Process):
@@ -165,13 +171,15 @@ class ProcessorWorker(multiprocessing.Process):
 
     def run(self):
         while True:
+            self.queue.empty()
             re = self.player.step()
-            self.queue.put(self.player)
-            if not re:
+            print(self, 'step')
+            if re:
+                self.queue.put(self.player)
+            else:
                 self.queue.put(self.player.brain)
-                self.queue.close()
+                print('worker is dead')
                 break
-
 
 
 
