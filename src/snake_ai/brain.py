@@ -21,6 +21,10 @@ class Player(object):
         del state['brain']
         return state
 
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.brain = None
+
 
     def step(self):
         out = self.brain.apply(self.game.state())

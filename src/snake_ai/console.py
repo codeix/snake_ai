@@ -20,6 +20,7 @@ from pympler import summary
 
 from pympler import asizeof
 
+
 def play():
 
     app = QApplication(sys.argv)
@@ -61,7 +62,7 @@ def ai():
 
 class MainAI(object):
      
-    amount_process = 4
+    amount_process = 30
 
     def __init__(self):
         self.winner = None
@@ -71,8 +72,6 @@ class MainAI(object):
         gen = 0
         ui_helper = None
         while True:
-    #        import pdb;pdb.set_trace()
-
             self.players.clear()
             gen += 1
             threads = list()
@@ -138,13 +137,13 @@ class Processor(threading.Thread):
     def run(self):
         self.worker.start()
         while True:
-            re = self.queue.get()
-            if isinstance(re, Player):
-                self.player = re
+            status = self.queue.get()
+            self.player = self.worker.ns.player
+            if status:
                 self.main.players[self.player.uuid] = self.player
                 self.sg.setGames([p.game for p in self.main.players.values()])
             else:
-                self.player.brain = re
+                self.player.brain = self.worker.ns.brain
                 print('Game over')
                 print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
                 if len(self.player.used_directions) < 1:
@@ -170,6 +169,11 @@ class ProcessorWorker(multiprocessing.Process):
 
     def __init__(self, player, queue):
         super().__init__()
+        manager = multiprocessing.Manager()
+        self.ns = manager.Namespace()
+        self.ns.player = None
+        self.ns.brain = None
+
         self.counter = self.counter_static['foo'] = self.counter_static['foo'] + 1
         self.player = player
         self.queue = queue
@@ -178,13 +182,15 @@ class ProcessorWorker(multiprocessing.Process):
     def run(self):
         print('worker thread %s before queue' % self.counter)
         while True:
+            print('queue size: %s' % self.queue.qsize())
             self.queue.empty()
             re = self.player.step()
+            self.ns.player = self.player
+            if not re:
+                self.ns.brain = self.player.brain
+            self.queue.put(re)
         #    print('worker thread %s  after queue' % self.counter)
-            if re:
-                self.queue.put(self.player)
-            else:
-                self.queue.put(self.player.brain)
+            if not re:
                 print('worker is dead')
                 break
 
