@@ -133,17 +133,17 @@ class Processor(threading.Thread):
         self.main = main
         self.queue = multiprocessing.Queue()
         self.worker = ProcessorWorker(player, self.queue)
+        self.worker.start()
 
     def run(self):
-        self.worker.start()
+        #self.worker.start()
         while True:
-            status = self.queue.get()
-            self.player = self.worker.ns.player
-            if status:
+            self.player, brain = self.queue.get()
+            if brain is None:
                 self.main.players[self.player.uuid] = self.player
                 self.sg.setGames([p.game for p in self.main.players.values()])
             else:
-                self.player.brain = self.worker.ns.brain
+                self.player.brain = brain
                 print('Game over')
                 print('Score: %s Used directions: %s' % (self.player.game.score, len(self.player.used_directions)))
                 if len(self.player.used_directions) < 1:
@@ -159,39 +159,27 @@ class Processor(threading.Thread):
                 break
             self.sg.update()
 
+        self.sg.update()
+
         self.queue.close()
         self.worker.join()
 
 
 class ProcessorWorker(multiprocessing.Process):
 
-    counter_static = dict(foo=0)
-
     def __init__(self, player, queue):
         super().__init__()
-        manager = multiprocessing.Manager()
-        self.ns = manager.Namespace()
-        self.ns.player = None
-        self.ns.brain = None
 
-        self.counter = self.counter_static['foo'] = self.counter_static['foo'] + 1
         self.player = player
         self.queue = queue
 
-
     def run(self):
-        print('worker thread %s before queue' % self.counter)
         while True:
-            print('queue size: %s' % self.queue.qsize())
-            self.queue.empty()
             re = self.player.step()
-            self.ns.player = self.player
-            if not re:
-                self.ns.brain = self.player.brain
-            self.queue.put(re)
-        #    print('worker thread %s  after queue' % self.counter)
-            if not re:
-                print('worker is dead')
+            if re:
+                self.queue.put((self.player, None,))
+            else:
+                self.queue.put((self.player, self.player.brain,))
                 break
 
 
