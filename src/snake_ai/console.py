@@ -1,9 +1,11 @@
 import sys
 import gc
 import time
+import pickle
+import datetime
 import threading
-import multiprocessing
 import collections
+import multiprocessing
 
 from copy import deepcopy
 from random import random
@@ -58,21 +60,20 @@ def ai():
 class MainAI(object):
      
     amount_process = 30
+    dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
     def __init__(self):
         self.winner = None
         self.players = collections.OrderedDict()
 
 
-    def prepare_process(self, index):
-        brain = None
-        if self.winner is not None:
-            brain = deepcopy(self.winner.brain)
+    def prepare_process(self, args):
+        index, brain = args
+        if brain is not None:
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
-            print((index**2/self.amount_process**2)*100)
         else:
-            brain = Brain([30*25*3, 500, 500, 50, 4])
+            brain = Brain([30*25*3, 1000, 500, 4])
             brain.random()
         return brain
 
@@ -85,7 +86,10 @@ class MainAI(object):
             threads = list()
 
             pool = multiprocessing.Pool()
-            brains = pool.map(self.prepare_process, range(self.amount_process))
+            brain = None
+            if self.winner is not None:
+                brain = self.winner.brain
+            brains = pool.map(self.prepare_process, [(i, brain,) for i in range(self.amount_process)])
             pool.close()
  
             for brain in brains:
@@ -117,6 +121,7 @@ class MainAI(object):
                     thread.main.winner = thread.player
 
             if self.winner is not None:
+                pickle.dump(self.winner, open(self.dump_name, 'wb'))
                 print('Gen: %s, The winner is: %s score: %s used directions: %s' % (gen, self.winner, self.winner.game.score, len(self.winner.used_directions)))
             else:
                 print('Gen %s has no winner' % gen)
