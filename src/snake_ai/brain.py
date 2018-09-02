@@ -11,7 +11,7 @@ class Player(object):
         self.game = Game(30, 25)
         self.used_directions = set()
         if brain is None:
-            self.brain = Brain([30*25*3,10])#Brain([30*25*3, 100, 100, 50, 4])
+            self.brain = Brain([30*25*3, 500, 500, 50, 4])
             self.brain.random()
         else:
             self.brain = brain
