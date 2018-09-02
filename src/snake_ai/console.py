@@ -73,7 +73,7 @@ class MainAI(object):
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
         else:
-            brain = Brain([30*25*3, 1000, 500, 4])
+            brain = Brain([30*25*3, 500, 200, 4])
             brain.random()
         return brain
 
@@ -121,7 +121,7 @@ class MainAI(object):
                     thread.main.winner = thread.player
 
             if self.winner is not None:
-                pickle.dump(self.winner, open(self.dump_name, 'wb'))
+                pickle.dump(self.winner.brain, open(self.dump_name, 'wb'))
                 print('Gen: %s, The winner is: %s score: %s used directions: %s' % (gen, self.winner, self.winner.game.score, len(self.winner.used_directions)))
             else:
                 print('Gen %s has no winner' % gen)
