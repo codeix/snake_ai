@@ -93,6 +93,13 @@ class Brain(object):
         for neuron in self.neurons:
             neuron.reset()
 
+    def show(self):
+        st = ''
+        for index, layer in enumerate(self.layers):
+            st += '\n\n\n\n\nLAYER %i' % index
+            for neuron in layer:
+                st += str(neuron.weights) + '\n'
+        return st
 
 class Neuron(object):
     

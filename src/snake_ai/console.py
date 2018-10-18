@@ -54,6 +54,14 @@ def play():
     sys.exit(app.exec_())
 
 
+def show():
+    if len(sys.argv) != 2:
+        print('path to brain file must given as argument')
+        sys.exit(1)
+    path = sys.argv[1]
+    brain = pickle.load(open(path, 'rb' ))
+    print(brain.show())
+
 def ai():
     MainAI().run()
 
