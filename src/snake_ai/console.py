@@ -42,10 +42,11 @@ def play():
             print('Game over')
             print('Score: %s' % game.score)
             sys.exit()
+        print([i for i in game.state()])
         sg.update()
 
     timer = QTimer()
-    timer.setInterval(200)
+    timer.setInterval(2000)
     timer.timeout.connect(processor)
     timer.start()
 
@@ -90,7 +91,7 @@ class MainAI(object):
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
         else:
-            brain = Brain([30*25*3, 500, 200, 4])
+            brain = Brain([8*3, 20, 4])
             brain.random()
         return brain
 
