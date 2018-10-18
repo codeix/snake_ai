@@ -1,5 +1,7 @@
 import uuid
 import operator
+import itertools
+
 from random import random
 
 
@@ -37,7 +39,28 @@ class Game(object):
         self.apple()
         self.init_snake()
 
+    def distance(self, fieldtype):
+        head = self.head()
+        dirs = (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)
+        for direction in dirs:
+            point = head
+            for counter in itertools.count():
+                point = tuple(map(operator.add, point, direction))
+                x, y = point
+                try:
+                    if self.field[x][y] == fieldtype:
+                        yield counter
+                        break
+                except IndexError as e:
+                        yield -1
+                        break
+
+
     def state(self):
+        generators = [self.distance(t) for t in (FIELD_SNAKE, FIELD_WALL, FIELD_APPLE)]
+        return itertools.chain(*generators)
+
+    def state_old(self):
         for t in (FIELD_SNAKE, FIELD_WALL, FIELD_APPLE):
             output = list()
             for i in range(self.width):
@@ -70,11 +93,14 @@ class Game(object):
             x,y = int(random() * self.width), int(random() * self.height)
             if self.field[x][y] == FIELD_EMPTY:
                 return x,y
+    
+    def head(self):
+        return self.snake[-1:][0]
 
 
     def move(self):
         self.score += 1
-        head = self.snake[-1:][0]
+        head = self.head()
         new = tuple(map(operator.add, head, self.direction))
         x,y = new
         if self.field[x][y] in (FIELD_WALL, FIELD_SNAKE):
