@@ -119,13 +119,15 @@ class MainAI(object):
                 thread.join()
 
                 print('Score: %s Used directions: %s' % (thread.player.game.score, len(thread.player.used_directions)))
-                if len(thread.player.used_directions) < 2:
-                    continue
+
                 if thread.main.winner is None:
                     thread.main.winner = thread.player
-                elif len(thread.main.winner.used_directions) < len(thread.player.used_directions):
+
+                if len(thread.main.winner.used_directions) < len(thread.player.used_directions):
                     thread.main.winner = thread.player
-                elif thread.main.winner.game.score < thread.player.game.score:
+                    continue
+
+                if thread.main.winner.game.score < thread.player.game.score and len(thread.main.winner.used_directions) <= len(thread.player.used_directions):
                     thread.main.winner = thread.player
 
             if self.winner is not None:

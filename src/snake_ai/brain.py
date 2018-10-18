@@ -125,7 +125,6 @@ class Neuron(object):
             if percentage is None:
                 self.weights[k] = random()
             else:
-                new = random()
                 new = self.weights[k] + (random()/100*percentage) - (percentage/100.0/2)
                 new = min(new, 1)
                 new = max(new, 0)
