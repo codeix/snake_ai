@@ -63,20 +63,29 @@ def show():
     print(brain.show())
 
 def ai():
-    MainAI().run()
+    brain = None
+    if len(sys.argv) == 2:
+        brain = pickle.load(open(sys.argv[1], 'rb'))
+        print('brain loaded from: %s' % sys.argv[1])
+    MainAI(brain).run()
 
 class MainAI(object):
      
     amount_process = 30
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
-    def __init__(self):
+    def __init__(self, brainfile=None):
         self.winner = None
         self.players = collections.OrderedDict()
+        self.brainfile = brainfile
 
 
     def prepare_process(self, args):
         index, brain = args
+
+        if brain is None and self.brainfile is not None:
+            brain = self.brainfile
+
         if brain is not None:
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
