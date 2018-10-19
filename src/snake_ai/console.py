@@ -46,7 +46,7 @@ def play():
         sg.update()
 
     timer = QTimer()
-    timer.setInterval(2000)
+    timer.setInterval(200)
     timer.timeout.connect(processor)
     timer.start()
 
@@ -72,7 +72,7 @@ def ai():
 
 class MainAI(object):
      
-    amount_process = 30
+    amount_process = 100
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
     def __init__(self, brainfile=None):
@@ -91,14 +91,16 @@ class MainAI(object):
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
         else:
-            brain = Brain([8*3, 20, 4])
-            brain.random()
+            brain = Brain([8*1, 50, 20, 4])
+            #brain.random()
         return brain
 
     def run(self):
         gen = 0
         ui_helper = None
+        started = None
         while True:
+            started = time.time()
             self.players.clear()
             gen += 1
             threads = list()
@@ -137,12 +139,12 @@ class MainAI(object):
                     thread.main.winner = thread.player
                     continue
 
-                if thread.main.winner.game.score < thread.player.game.score and len(thread.main.winner.used_directions) <= len(thread.player.used_directions):
+                if thread.main.winner.game.score < thread.player.game.score  and len(thread.main.winner.used_directions) <= len(thread.player.used_directions):
                     thread.main.winner = thread.player
 
             if self.winner is not None:
                 pickle.dump(self.winner.brain, open(self.dump_name, 'wb'))
-                print('Gen: %s, The winner is: %s score: %s used directions: %s' % (gen, self.winner, self.winner.game.score, len(self.winner.used_directions)))
+                print('Gen: %s, Sec.: %.3f The winner is: %s score: %s used directions: %s' % (gen, time.time() - started, self.winner, self.winner.game.score, len(self.winner.used_directions)))
             else:
                 print('Gen %s has no winner' % gen)
     

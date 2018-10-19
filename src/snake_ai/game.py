@@ -57,7 +57,7 @@ class Game(object):
 
 
     def state(self):
-        generators = [self.distance(t) for t in (FIELD_SNAKE, FIELD_WALL, FIELD_APPLE)]
+        generators = [self.distance(t) for t in (FIELD_WALL, )]#(FIELD_SNAKE, FIELD_WALL, FIELD_APPLE)]
         return itertools.chain(*generators)
 
     def state_old(self):
@@ -123,7 +123,7 @@ class Game(object):
         self.field[x][y] = FIELD_SNAKE
         self.apple()
         self.snake_grow += 1
-        self.score += 100
+        #self.score += 100
 
 
     def up(self):
