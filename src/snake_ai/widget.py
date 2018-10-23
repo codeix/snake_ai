@@ -24,6 +24,12 @@ class SnakeGui(QWidget):
         self.keylistener = None
         self.initUI(games)
         
+
+    def update(self, index=None):
+        if index is None:
+            super().update()
+        else:
+            self.layout.itemAt(index).widget().update()
         
     def initUI(self, games):
         self.games = games
@@ -34,7 +40,7 @@ class SnakeGui(QWidget):
         x = math.sqrt(len(self.canvas))
         y = x if x % 1 == 0 else x + 1 
         
-        temp_canvas = [] + self.canvas
+        temp_canvas = self.canvas + []
 
         self.layout = QGridLayout()
         self.setLayout(self.layout)
@@ -46,14 +52,18 @@ class SnakeGui(QWidget):
                 self.layout.addWidget(temp_canvas.pop(), ix, iy)
 
 
+    def setGame(self, game, index):
+        if self.layout is not None:
+            item = self.layout.itemAt(index)
+            widget = item.widget()
+            if widget is not None:
+                widget.game = game
+
+
     def setGames(self, games):
         temp = games + []
-        if self.layout is not None:
-            for i in range(self.layout.count()):
-                item = self.layout.itemAt(i)
-                widget = item.widget()
-                if widget is not None:
-                    widget.game = temp.pop()
+        for i in range(len(temp)):
+            self.setGame(temp.pop(), i)
 
 
     def keyPressEvent(self, event):

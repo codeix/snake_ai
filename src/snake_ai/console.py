@@ -109,10 +109,10 @@ class MainAI(object):
             brains = pool.map(self.prepare_process, [(i, brain,) for i in range(self.amount_process)])
             pool.close()
  
-            for brain in brains:
+            for index, brain in enumerate(brains):
                 player = Player(brain)
                 self.players[player.uuid] = player
-                threads.append(Processor(player, self))
+                threads.append(Processor(index, player, self))
 
             if ui_helper is None:
                 ui_helper = ThreadHelper(self.players)
@@ -171,8 +171,9 @@ class Processor(threading.Thread):
 
     sg = None
 
-    def __init__(self, player, main):
+    def __init__(self, index, player, main):
         super().__init__()
+        self.index = index
         self.player = player
         self.main = main
         self.queue = multiprocessing.Queue()
@@ -186,19 +187,21 @@ class Processor(threading.Thread):
         while True:
             self.player, brain = self.queue.get()
             self.main.players[self.player.uuid] = self.player
-            self.sg.setGames([p.game for p in self.main.players.values()])
+            self.sg.setGame(self.player.game, self.index)
             if brain is not None:
                 self.player.brain = brain
                 break
-            self.sg.update()
-            time.sleep(0.2)
-        self.sg.update()
+            self.sg.update(self.index)
+
+        self.sg.update(self.index)
 
         self.queue.close()
         self.worker.join()
 
 
 class ProcessorWorker(multiprocessing.Process):
+
+    MAX_SLEEP_TIME = 0.1
 
     def __init__(self, player, queue):
         super().__init__()
@@ -208,13 +211,12 @@ class ProcessorWorker(multiprocessing.Process):
 
     def run(self):
         while True:
+            started = time.time()
             re = self.player.step()
             if re:
                 self.queue.put((self.player, None,))
             else:
                 self.queue.put((self.player, self.player.brain,))
                 break
-
-
-
+            time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
 
