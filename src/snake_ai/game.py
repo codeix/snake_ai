@@ -60,7 +60,7 @@ class Game(object):
 
 
     def state(self):
-        generators = [self.distance(t) for t in (FIELD_WALL, )]#(FIELD_SNAKE, FIELD_WALL, FIELD_APPLE)]
+        generators = [self.distance(t) for t in (FIELD_WALL, FIELD_WALL, FIELD_APPLE)]
         return itertools.chain(*generators)
 
     def state_old(self):
@@ -133,7 +133,6 @@ class Game(object):
         self.snake_grow += 1
         self.score += 100
         self.kill = KILL_TO_PREVENT_LOOP
-
 
     def up(self):
         self.direction = MOVE_UP

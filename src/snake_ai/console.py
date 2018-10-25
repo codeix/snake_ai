@@ -72,7 +72,7 @@ def ai():
 
 class MainAI(object):
      
-    amount_process = 100
+    amount_process = 30
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
     def __init__(self, brainfile=None):
@@ -91,7 +91,7 @@ class MainAI(object):
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
         else:
-            brain = Brain([8*1, 50, 20, 4])
+            brain = Brain([8*3, 20, 4])
             #brain.random()
         return brain
 
@@ -204,7 +204,7 @@ class Processor(threading.Thread):
 
 class ProcessorWorker(multiprocessing.Process):
 
-    MAX_SLEEP_TIME = 0.1
+    MAX_SLEEP_TIME = 0.08
 
     def __init__(self, player, queue):
         super().__init__()
