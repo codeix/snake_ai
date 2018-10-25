@@ -1,4 +1,6 @@
 import uuid
+import itertools
+import  numpy as nu
 from random import random
 from snake_ai.game import Game
 
@@ -35,92 +37,17 @@ class Player(object):
         return self.game.move()
 
 
+class AbstractNeuron(object):
 
-
-class Brain(object):
-    
-    def __init__(self, layers):
-        self.neurons = list()
-        self.layers = list()
-        layers.reverse()
-        for layer_size in layers:
-            li = list()
-            for i in range(layer_size):
-                last = self.layers[:1]
-                if last:
-                    last = last.pop()
-                else:
-                    last = None
-                li.append(Neuron(last))
-            self.neurons += li
-            self.layers.insert(0, li)
-
-        weight_sum = 1
-        for layer in self.layers:
-            new_weight_sum = 0
-            for neuron in layer:
-                neuron.max_weight = weight_sum
-                new_weight_sum += neuron.max_weight
-            weight_sum = new_weight_sum
-
-
-    def apply(self, inputs):
-        self.reset()
-
-        for index, value in enumerate(inputs):
-            self.layers[0][index].apply(value)
-
-        len(self.layers)
-        for layer in self.layers:
-            for neuron in layer:
-                neuron.submit()
-
-        output = self.layers[-1:][0]
-        return tuple([i.value/i.max_weight for i in output])
-         
-
-    def random(self, percentage=None):
-        for neuron in self.neurons:
-            neuron.random(percentage)
-    
-
-    def set_weights(self, value):
-       for neuron in self.neurons:
-            neuron.set_weights(value)
-
-
-    def reset(self):
-        for neuron in self.neurons:
-            neuron.reset()
-
-    def show(self):
-        st = ''
-        for index, layer in enumerate(self.layers):
-            st += '\n\n\n\n\nLAYER %i' % index
-            for neuron in layer:
-                st += str(neuron.weights) + '\n'
-        return st
-
-class Neuron(object):
-    
-    def __init__(self, parents):
+    def __init__(self):
         self.weights = None
-        self.value = 0
-        self.max_weight = 0
 
-        if parents is not None:
-            self.weights = dict()
-            for parent in parents:
-                self.weights[parent] = 0
-
-
-    def reset(self):
-        self.value = 0
-
+    def relations(self, neurons, default_weight=0):
+        self.weights = dict()
+        for neuron in neurons:
+            self.weights[neuron] = default_weight
 
     def random(self, percentage):
-        if self.weights is None:
-            return
         for k in self.weights.keys():
             if percentage is None:
                 self.weights[k] = random()
@@ -130,23 +57,100 @@ class Neuron(object):
                 new = max(new, 0)
                 self.weights[k] = new
 
-
     def set_weights(self, value):
-        if self.weights is None:
-            return
         for k in self.weights.keys():
             self.weights[k] = value
 
+    def activation(self, value):
+        raise Exception('need to be overrided')
 
-    def apply(self, value):
-        self.value += value
-
-
-    def submit(self):
-        if self.weights is None:
-            return
+    def apply(self):
+        summary = 0
         for neuron, weight in self.weights.items():
-            neuron.apply(self.value * weight)
+            summary += neuron.apply() * weight
+        return self.activation(summary)
 
 
+class InputNeuron(AbstractNeuron):
+
+    def __init__(self, index, data):
+        self.index = index
+        self.data = data
+
+    def apply(self):
+        return self.data.get(self.index)
+
+
+class TanHNeuron(AbstractNeuron):
+
+    def activation(self, value):
+         return nu.tanh(value)
+
+
+class Brain(object):
+    
+    def __init__(self, structure, classNeuron=TanHNeuron):
+        self.layers = list()
+        self.inputs = Layer()
+        self.data = Data()
+
+        for i in range(structure[0]):
+            self.inputs.append(InputNeuron(i, self.data))
+
+        for size in structure:
+            layer = Layer()
+            self.layers.append(layer)
+            for i in range(size):
+                 layer.append(classNeuron())
+
+        for index in range(len(self.layers) -1, -1, -1):
+            layer = self.layers[index]
+            if (index > 0):
+                prev_layer = self.layers[index-1]
+                for neuron in layer:
+                    neuron.relations(prev_layer)
+            else:
+                for j, neuron in enumerate(layer):
+                    neuron.relations([self.inputs[j]])
+
+    def neurons(self):
+        return itertools.chain(*self.layers)
+
+    def apply(self, inputs):
+        self.data.set(inputs)
+        return tuple([i.apply() for i in self.layers[-1]])
+
+    def random(self, percentage=None):
+        for neuron in self.neurons:
+            neuron.random(percentage)
+    
+
+    def set_weights(self, value):
+       for neuron in self.neurons():
+            neuron.set_weights(value)
+
+    def show(self):
+        st = ''
+        for index, layer in enumerate(self.layers):
+            st += '\n\n\n\n\nLAYER %i' % index
+            for neuron in layer:
+                st += str(neuron.weights) + '\n'
+        return st
+
+
+class Layer(list):
+    pass
+
+
+class Data(object):
+
+    def __init__(self):
+        self.data = list()
+
+    def set(self, data):
+        self.data = data
+
+
+    def get(self, index):
+        return self.data[index]
 
