@@ -121,7 +121,7 @@ class Brain(object):
         return tuple([i.apply() for i in self.layers[-1]])
 
     def random(self, percentage=None):
-        for neuron in self.neurons:
+        for neuron in self.neurons():
             neuron.random(percentage)
     
 
@@ -148,7 +148,7 @@ class Data(object):
         self.data = list()
 
     def set(self, data):
-        self.data = data
+        self.data = list(data)
 
 
     def get(self, index):
