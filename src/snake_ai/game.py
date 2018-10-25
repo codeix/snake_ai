@@ -16,6 +16,8 @@ MOVE_RIGHT = 1, 0
 
 SNAKE_INIT_GROW = 3
 
+KILL_TO_PREVENT_LOOP = 100
+
 class Game(object):
 
     def __init__(self, width, height):
@@ -25,8 +27,9 @@ class Game(object):
         self.score = 0
         self.snake = list()
         self.snake_grow = SNAKE_INIT_GROW
+        self.kill = KILL_TO_PREVENT_LOOP
         self.direction = MOVE_UP
-        self.field = [[0 for x in range(height)] for y in range(width)] 
+        self.field = [[0 for x in range(height)] for y in range(width)]
 
         for i in range(width):
             for j in range(height):
@@ -73,6 +76,10 @@ class Game(object):
 
 
     def move(self):
+        if self.kill < 0:
+          print('Snake killed to prevent loop')
+          return False
+        self.kill -= 1
         self.score += 1
         head = self.snake[-1:][0]
         new = tuple(map(operator.add, head, self.direction))
@@ -98,6 +105,7 @@ class Game(object):
         self.apple()
         self.snake_grow += 1
         self.score += 100
+        self.kill = KILL_TO_PREVENT_LOOP
 
 
     def up(self):
