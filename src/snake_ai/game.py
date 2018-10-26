@@ -78,6 +78,7 @@ class Game(object):
     def move(self):
         if self.kill < 0:
           print('Snake killed to prevent loop')
+          self.score = 0
           return False
         self.kill -= 1
         self.score += 1

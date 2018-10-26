@@ -41,6 +41,7 @@ class AbstractNeuron(object):
 
     def __init__(self):
         self.weights = None
+        self.cache = None
 
     def relations(self, neurons, default_weight=0):
         self.weights = dict()
@@ -64,11 +65,16 @@ class AbstractNeuron(object):
     def activation(self, value):
         raise Exception('need to be overrided')
 
+    def reset(self):
+        self.cache = None
+
     def apply(self):
-        summary = 0
-        for neuron, weight in self.weights.items():
-            summary += neuron.apply() * weight
-        return self.activation(summary)
+        if self.cache is None:
+            summary = 0
+            for neuron, weight in self.weights.items():
+                summary += neuron.apply() * weight
+            self.cache = self.activation(summary)
+        return self.cache
 
 
 class InputNeuron(AbstractNeuron):
@@ -117,8 +123,13 @@ class Brain(object):
         return itertools.chain(*self.layers)
 
     def apply(self, inputs):
+        self.reset()
         self.data.set(inputs)
         return tuple([i.apply() for i in self.layers[-1]])
+
+    def reset(self):
+        for neuron in self.neurons():
+            neuron.reset()
 
     def random(self, percentage=None):
         for neuron in self.neurons():
