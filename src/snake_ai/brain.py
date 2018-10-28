@@ -8,9 +8,9 @@ from snake_ai.game import Game
 
 class Player(object):
 
-    def __init__(self, brain = None):
+    def __init__(self, brain = None, seed=None):
         self.uuid = uuid.uuid1()
-        self.game = Game(30, 25)
+        self.game = Game(30, 25, seed)
         self.used_directions = set()
         if brain is None:
             self.brain = Brain([30*25*3, 500, 500, 50, 4])
@@ -30,6 +30,7 @@ class Player(object):
 
     def step(self):
         out = self.brain.apply(self.game.state())
+        print(out)
         direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out))
         func = max(direction, key=direction.get)
         func()
@@ -63,7 +64,7 @@ class AbstractNeuron(object):
             self.weights[k] = value
 
     def activation(self, value):
-        raise Exception('need to be overrided')
+        raise Exception('need to be overridden')
 
     def reset(self):
         self.cache = None

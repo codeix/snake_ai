@@ -1,8 +1,7 @@
 import uuid
+import random
 import operator
 import itertools
-
-from random import random
 
 
 FIELD_APPLE = 0
@@ -22,7 +21,7 @@ KILL_TO_PREVENT_LOOP = 100
 
 class Game(object):
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, seed=None):
         self.uuid = uuid.uuid1()
         self.width = width
         self.height = height
@@ -32,6 +31,9 @@ class Game(object):
         self.kill = KILL_TO_PREVENT_LOOP
         self.direction = MOVE_UP
         self.field = [[0 for x in range(height)] for y in range(width)]
+        if seed is None:
+            seed = random.random()
+        self.random = random.Random(seed)
 
         for i in range(width):
             for j in range(height):
@@ -93,7 +95,7 @@ class Game(object):
 
     def random_point(self):
         while True:
-            x,y = int(random() * self.width), int(random() * self.height)
+            x,y = int(self.random.random() * self.width), int(self.random.random() * self.height)
             if self.field[x][y] == FIELD_EMPTY:
                 return x,y
     

@@ -91,7 +91,7 @@ class MainAI(object):
             index = float(index)
             brain.random((index**2/self.amount_process**2)*100)
         else:
-            brain = Brain([8*3, 20, 4])
+            brain = Brain([8*3, 80, 20, 20, 4])
             #brain.random()
         return brain
 
@@ -102,6 +102,7 @@ class MainAI(object):
         while True:
             started = time.time()
             self.players.clear()
+            seed = random()
             gen += 1
             threads = list()
 
@@ -113,7 +114,7 @@ class MainAI(object):
             pool.close()
  
             for index, brain in enumerate(brains):
-                player = Player(brain)
+                player = Player(brain, seed)
                 self.players[player.uuid] = player
                 threads.append(Processor(index, player, self))
 
