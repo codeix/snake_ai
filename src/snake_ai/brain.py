@@ -1,4 +1,5 @@
 import uuid
+import math
 import itertools
 import  numpy as nu
 from random import random
@@ -30,7 +31,6 @@ class Player(object):
 
     def step(self):
         out = self.brain.apply(self.game.state())
-        print(out)
         direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out))
         func = max(direction, key=direction.get)
         func()
@@ -88,7 +88,13 @@ class InputNeuron(AbstractNeuron):
         self.data = data
 
     def apply(self):
-        return self.data.get(self.index)
+        return float(self.data.get(self.index))
+
+
+class SigmoidNeuron(AbstractNeuron):
+
+    def activation(self, value):
+        return 1 / (1 + math.exp(-value))
 
 
 class TanHNeuron(AbstractNeuron):
@@ -99,7 +105,7 @@ class TanHNeuron(AbstractNeuron):
 
 class Brain(object):
     
-    def __init__(self, structure, classNeuron=TanHNeuron):
+    def __init__(self, structure, classNeuron=SigmoidNeuron):
         self.layers = list()
         self.inputs = Layer()
         self.data = Data()
