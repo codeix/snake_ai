@@ -1,8 +1,11 @@
 import uuid
 import math
+import random
 import itertools
+
 import  numpy as nu
-from random import random
+from collections import OrderedDict
+
 from snake_ai.game import Game
 
 
@@ -31,6 +34,7 @@ class Player(object):
 
     def step(self):
         out = self.brain.apply(self.game.state())
+        print(out)
         direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out))
         func = max(direction, key=direction.get)
         func()
@@ -44,24 +48,28 @@ class AbstractNeuron(object):
         self.weights = None
         self.cache = None
 
-    def relations(self, neurons, default_weight=0):
-        self.weights = dict()
+    def relations(self, neurons, default_weight=0.01):
+        self.weights = OrderedDict()
         for neuron in neurons:
             self.weights[neuron] = default_weight
 
     def random(self, percentage):
         for k in self.weights.keys():
             if percentage is None:
-                self.weights[k] = random()
+                self.weights[k] = random.random()
             else:
-                new = self.weights[k] + (random()/100*percentage) - (percentage/100.0/2)
+                new = self.weights[k] + (random.random()/100*percentage) - (percentage/100.0/2)
                 new = min(new, 1)
                 new = max(new, 0)
                 self.weights[k] = new
 
-    def set_weights(self, value):
-        for k in self.weights.keys():
-            self.weights[k] = value
+    def set_weights(self, values):
+        if isinstance(values, (float, int)):
+            for k in self.weights.keys():
+                self.weights[k] = values
+        else:
+            for k, value in zip(self.weights.keys(), values):
+                self.weights[k] = value
 
     def activation(self, value):
         raise Exception('need to be overridden')
@@ -109,6 +117,8 @@ class Brain(object):
         self.layers = list()
         self.inputs = Layer()
         self.data = Data()
+        self.structure = structure
+        self.classNeuron = classNeuron
 
         for i in range(structure[0]):
             self.inputs.append(InputNeuron(i, self.data))
@@ -157,6 +167,27 @@ class Brain(object):
             for j, neuron in enumerate(layer):
                 st += '%.4i: %s\n' %(j, repr(neuron))
         return st
+
+    @staticmethod
+    def crossover(paBrain, pbBrain, seed=None):
+        cBrain = Brain(paBrain.structure, paBrain.classNeuron)
+        lenght = sum(1 for x in paBrain.neurons())
+
+        if seed is None:
+            seed = random.random()
+        rnd = random.Random(seed)
+
+        for left, right, child in zip(paBrain.neurons(), pbBrain.neurons(), cBrain.neurons()):
+            sl = rnd.randint(0, lenght - 1)
+            weights = list()
+            for index, value in enumerate(zip(left.weights.values(), right.weights.values())):
+                wl, wr = value
+                if sl > index:
+                    weights.append(wl)
+                else:
+                    weights.append(wr)
+            child.set_weights(weights)
+        return cBrain
 
 
 class Layer(list):
