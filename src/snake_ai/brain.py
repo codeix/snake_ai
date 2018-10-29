@@ -34,7 +34,6 @@ class Player(object):
 
     def step(self):
         out = self.brain.apply(self.game.state())
-        print(out)
         direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out))
         func = max(direction, key=direction.get)
         func()
@@ -113,7 +112,7 @@ class TanHNeuron(AbstractNeuron):
 
 class Brain(object):
     
-    def __init__(self, structure, classNeuron=SigmoidNeuron):
+    def __init__(self, structure, classNeuron=TanHNeuron):
         self.layers = list()
         self.inputs = Layer()
         self.data = Data()

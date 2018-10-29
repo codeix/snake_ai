@@ -3,6 +3,7 @@ import gc
 import time
 import pickle
 import datetime
+import itertools
 import threading
 import collections
 import multiprocessing
@@ -76,7 +77,7 @@ class MainAI(object):
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
     def __init__(self, brainfile=None):
-        self.winner = None
+        self.childs = None
         self.players = collections.OrderedDict()
         self.brainfile = brainfile
 
@@ -89,7 +90,8 @@ class MainAI(object):
 
         if brain is not None:
             index = float(index)
-            brain.random((index**2/self.amount_process**2)*100)
+            brain.random((index**2/self.amount_process**2)*10)
+            #brain.random((index**2/self.amount_process**2)*100)
         else:
             brain = Brain([8*3, 80, 20, 20, 4])
             #brain.random()
@@ -102,15 +104,16 @@ class MainAI(object):
         while True:
             started = time.time()
             self.players.clear()
-            seed = random()
+            seed = 10#random()
             gen += 1
             threads = list()
 
             pool = multiprocessing.Pool()
-            brain = None
-            if self.winner is not None:
-                brain = self.winner.brain
-            brains = pool.map(self.prepare_process, [(i, brain,) for i in range(self.amount_process)])
+            brains = None
+            if self.childs is not None:
+                brains = pool.map(self.prepare_process, [(i, brain,) for i, brain in enumerate(self.childs)])
+            else:
+                brains = pool.map(self.prepare_process, [(i, None,) for i in range(self.amount_process)])
             pool.close()
  
             for index, brain in enumerate(brains):
@@ -131,8 +134,24 @@ class MainAI(object):
             for thread in threads:
                 thread.join()
 
+            threads.sort(reverse=True, key=lambda t: (len(t.player.used_directions), t.player.game.score,))
+
+
+            print('\n\n\nGen: %s, Sec.: %.3f' % (gen, time.time() - started))
+            for thread in threads:
                 print('Score: %s Used directions: %s' % (thread.player.game.score, len(thread.player.used_directions)))
 
+            bests = threads[:3]
+            childs = [t.player.brain for t in threads]
+            for pairs in itertools.combinations(bests, 2):
+                leftP, rightP = pairs
+                left, right = (leftP.player.brain, rightP.player.brain)
+                childs.insert(0, Brain.crossover(left, right))
+            self.childs = childs[:self.amount_process]
+            
+            pickle.dump(childs[0], open(self.dump_name, 'wb'))    
+
+            """
                 if thread.main.winner is None:
                     thread.main.winner = thread.player
 
@@ -149,7 +168,7 @@ class MainAI(object):
             else:
                 print('Gen %s has no winner' % gen)
     
-
+            """
 
 class ThreadHelper(threading.Thread):
 
