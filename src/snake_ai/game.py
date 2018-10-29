@@ -26,6 +26,7 @@ class Game(object):
         self.width = width
         self.height = height
         self.score = 0
+        self.steps = 0
         self.snake = list()
         self.snake_grow = SNAKE_INIT_GROW
         self.kill = KILL_TO_PREVENT_LOOP
@@ -110,6 +111,7 @@ class Game(object):
           return False
         self.kill -= 1
         self.score += 1
+        self.steps += 1
         head = self.head()
         new = tuple(map(operator.add, head, self.direction))
         x,y = new

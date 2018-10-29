@@ -134,12 +134,12 @@ class MainAI(object):
             for thread in threads:
                 thread.join()
 
-            threads.sort(reverse=True, key=lambda t: (len(t.player.used_directions), t.player.game.score,))
+            threads.sort(reverse=True, key=lambda t: (len(t.player.used_directions), t.player.game.steps, len(t.player.game.snake)))
 
 
             print('\n\n\nGen: %s, Sec.: %.3f' % (gen, time.time() - started))
             for thread in threads:
-                print('Score: %s Used directions: %s' % (thread.player.game.score, len(thread.player.used_directions)))
+                print('Score: %s Used directions: %s steps: %s snake length: %s' % (thread.player.game.score, len(thread.player.used_directions), thread.player.game.steps, len(thread.player.game.snake)))
 
             bests = threads[:3]
             childs = [t.player.brain for t in threads]
