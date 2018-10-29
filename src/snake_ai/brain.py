@@ -77,6 +77,9 @@ class AbstractNeuron(object):
             self.cache = self.activation(summary)
         return self.cache
 
+    def __repr__(self):
+        return '%s<%s>' % (self.__class__.__name__, ','.join(map(str, self.weights.values())))
+
 
 class InputNeuron(AbstractNeuron):
 
@@ -144,9 +147,9 @@ class Brain(object):
     def show(self):
         st = ''
         for index, layer in enumerate(self.layers):
-            st += '\n\n\n\n\nLAYER %i' % index
-            for neuron in layer:
-                st += str(neuron.weights) + '\n'
+            st += '\n\n\nLAYER %i\n' % index
+            for j, neuron in enumerate(layer):
+                st += '%.4i: %s\n' %(j, repr(neuron))
         return st
 
 
