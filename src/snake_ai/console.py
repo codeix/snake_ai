@@ -90,7 +90,7 @@ class MainAI(object):
 
         if brain is not None:
             index = float(index)
-            brain.random((index**2/self.amount_process**2)*10)
+            brain.random(0.1)
             #brain.random((index**2/self.amount_process**2)*100)
         else:
             brain = Brain([8*3, 80, 20, 20, 4])
@@ -146,7 +146,9 @@ class MainAI(object):
             for pairs in itertools.combinations(bests, 2):
                 leftP, rightP = pairs
                 left, right = (leftP.player.brain, rightP.player.brain)
-                childs.insert(0, Brain.crossover(left, right))
+                ca, cb = Brain.crossover(left, right)
+                childs.insert(0, ca)
+                childs.insert(0, cb)
             self.childs = childs[:self.amount_process]
             
             pickle.dump(childs[0], open(self.dump_name, 'wb'))    

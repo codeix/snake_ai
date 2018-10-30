@@ -11,13 +11,18 @@ class ObjectsTestCase(unittest.TestCase):
         a.set_weights(1)
         b.set_weights(2)
 
-        child = Brain.crossover(a, b, 1)
-        self.assertSequenceEqual(list(child.layers[1][0].weights.values()), [1,1,2])
-        self.assertSequenceEqual(list(child.layers[1][1].weights.values()), [2,2,2])
+        ca, cb = Brain.crossover(a, b, 1)
+        self.assertSequenceEqual(list(ca.layers[1][0].weights.values()), [1,1,2])
+        self.assertSequenceEqual(list(ca.layers[1][1].weights.values()), [2,2,2])
+        self.assertSequenceEqual(list(cb.layers[1][0].weights.values()), [2,2,1])
+        self.assertSequenceEqual(list(cb.layers[1][1].weights.values()), [1,1,1])
 
-        child = Brain.crossover(a, b, 2)
-        self.assertSequenceEqual(list(child.layers[1][0].weights.values()), [1,1,2])
-        self.assertSequenceEqual(list(child.layers[1][1].weights.values()), [1,2,2])
+
+        ca, cb = Brain.crossover(a, b, 2)
+        self.assertSequenceEqual(list(ca.layers[1][0].weights.values()), [1,1,2])
+        self.assertSequenceEqual(list(ca.layers[1][1].weights.values()), [1,2,2])
+        self.assertSequenceEqual(list(cb.layers[1][0].weights.values()), [2,2,1])
+        self.assertSequenceEqual(list(cb.layers[1][1].weights.values()), [2,1,1])
 
 
     def test_2(self):

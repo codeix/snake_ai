@@ -169,24 +169,29 @@ class Brain(object):
 
     @staticmethod
     def crossover(paBrain, pbBrain, seed=None):
-        cBrain = Brain(paBrain.structure, paBrain.classNeuron)
+        caBrain = Brain(paBrain.structure, paBrain.classNeuron)
+        cbBrain = Brain(paBrain.structure, paBrain.classNeuron)
         lenght = sum(1 for x in paBrain.neurons())
 
         if seed is None:
             seed = random.random()
         rnd = random.Random(seed)
 
-        for left, right, child in zip(paBrain.neurons(), pbBrain.neurons(), cBrain.neurons()):
+        for left, right, ca, cb in zip(paBrain.neurons(), pbBrain.neurons(), caBrain.neurons(), cbBrain.neurons()):
             sl = rnd.randint(0, lenght - 1)
-            weights = list()
+            wa = list()
+            wb = list()
             for index, value in enumerate(zip(left.weights.values(), right.weights.values())):
                 wl, wr = value
                 if sl > index:
-                    weights.append(wl)
+                    wa.append(wl)
+                    wb.append(wr)
                 else:
-                    weights.append(wr)
-            child.set_weights(weights)
-        return cBrain
+                    wa.append(wr)
+                    wb.append(wl)
+            ca.set_weights(wa)
+            cb.set_weights(wb)
+        return caBrain, cbBrain
 
 
 class Layer(list):
