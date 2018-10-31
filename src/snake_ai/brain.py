@@ -101,7 +101,7 @@ class InputNeuron(AbstractNeuron):
 class SigmoidNeuron(AbstractNeuron):
 
     def activation(self, value):
-        return 1 / (1 + math.exp(-value))
+        return 1.0 / (1.0 + math.exp(-value))
 
 
 class TanHNeuron(AbstractNeuron):
@@ -109,6 +109,11 @@ class TanHNeuron(AbstractNeuron):
     def activation(self, value):
          return nu.tanh(value)
 
+
+class BiasNeuron(AbstractNeuron):
+
+    def apply(self):
+        return 1.0
 
 class Brain(object):
     
@@ -121,12 +126,15 @@ class Brain(object):
 
         for i in range(structure[0]):
             self.inputs.append(InputNeuron(i, self.data))
+        self.inputs.append(BiasNeuron())
 
-        for size in structure:
+        for i, size in enumerate(structure):
             layer = Layer()
             self.layers.append(layer)
-            for i in range(size):
+            for j in range(size):
                  layer.append(classNeuron())
+            if i != len(structure)-1:
+                layer.append(BiasNeuron())
 
         for index in range(len(self.layers) -1, -1, -1):
             layer = self.layers[index]

@@ -27,6 +27,7 @@ class Game(object):
         self.height = height
         self.score = 0
         self.steps = 0
+        self.killed = False
         self.snake = list()
         self.snake_grow = SNAKE_INIT_GROW
         self.kill = KILL_TO_PREVENT_LOOP
@@ -108,6 +109,7 @@ class Game(object):
         if self.kill < 0:
           print('Snake killed to prevent loop')
           self.score = 0
+          self.killed = True
           return False
         self.kill -= 1
         self.score += 1
