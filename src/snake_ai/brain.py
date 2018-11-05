@@ -123,6 +123,7 @@ class Brain(object):
         self.data = Data()
         self.structure = structure
         self.classNeuron = classNeuron
+        self.crossovered = False
 
         for i in range(structure[0]):
             self.inputs.append(InputNeuron(i, self.data))
@@ -199,6 +200,9 @@ class Brain(object):
                     wb.append(wl)
             ca.set_weights(wa)
             cb.set_weights(wb)
+
+        caBrain.crossovered = True
+        cbBrain.crossovered = True
         return caBrain, cbBrain
 
 

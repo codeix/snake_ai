@@ -94,7 +94,6 @@ class MainAI(object):
             #brain.random((index**2/self.amount_process**2)*100)
         else:
             brain = Brain([8*3, 20, 4])
-            #brain.random()
         return brain
 
     def run(self):
@@ -134,12 +133,19 @@ class MainAI(object):
             for thread in threads:
                 thread.join()
 
-            threads.sort(reverse=True, key=lambda t: (not t.player.game.killed, len(t.player.used_directions), t.player.game.steps, len(t.player.game.snake)))
+            threads.sort(reverse=True, key=lambda t: (not t.player.game.killed, len(t.player.used_directions), len(t.player.game.snake), t.player.game.steps))
 
 
             print('\n\n\nGen: %s, Sec.: %.3f' % (gen, time.time() - started))
             for thread in threads:
-                print('Score: %s Used directions: %s steps: %s snake length: %s' % (thread.player.game.score, len(thread.player.used_directions), thread.player.game.steps, len(thread.player.game.snake)))
+                print('Score: %s Used directions: %s steps: %s snake length: %s crossovered: %s' % (
+                thread.player.game.score,
+                len(thread.player.used_directions),
+                thread.player.game.steps,
+                len(thread.player.game.snake),
+                getattr(thread.player.brain, 'crossovered', '')))
+
+                thread.player.brain.crossovered = False
 
             bests = threads[:3]
             childs = [t.player.brain for t in threads]
@@ -216,9 +222,9 @@ class Processor(threading.Thread):
             if brain is not None:
                 self.player.brain = brain
                 break
-            #self.sg.update(self.index)
+            self.sg.update(self.index)
 
-        #self.sg.update(self.index)
+        self.sg.update(self.index)
 
         self.queue.close()
         self.worker.join()
@@ -243,5 +249,5 @@ class ProcessorWorker(multiprocessing.Process):
             else:
                 self.queue.put((self.player, self.player.brain,))
                 break
-            #time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
+            time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
 
