@@ -89,21 +89,6 @@ class MainAI(object):
         self.brainfile = brainfile
         self.has_gui = has_gui
 
-
-    def prepare_process(self, args):
-        index, brain = args
-
-        if brain is None and self.brainfile is not None:
-            brain = self.brainfile
-
-        if brain is not None:
-            index = float(index)
-            brain.random(0.5)
-            #brain.random((index**2/self.amount_process**2)*100)
-        else:
-            brain = Brain([8*3, 20, 4])
-        return brain
-
     def run(self):
         gen = 0
         ui_helper = None
@@ -116,15 +101,13 @@ class MainAI(object):
             gen += 1
             threads = list()
 
-            pool = multiprocessing.Pool()
-            brains = None
-            if self.childs is not None:
-                brains = pool.map(self.prepare_process, [(i, brain,) for i, brain in enumerate(self.childs)])
-            else:
-                brains = pool.map(self.prepare_process, [(i, None,) for i in range(self.amount_process)])
-            pool.close()
+            if self.childs is None:
+                if self.brainfile is None:
+                    self.childs = [Brain([8*3, 20, 4]) for i in range(self.amount_process)]
+                else:
+                    self.childs = [self.brainfile for i in range(self.amount_process)]
  
-            for index, brain in enumerate(brains):
+            for index, brain in enumerate(self.childs):
                 player = Player(brain, seed)
                 self.players[player.uuid] = player
                 threads.append(Processor(index, player, self))
@@ -263,6 +246,7 @@ class ProcessorWorker(multiprocessing.Process):
         while True:
             player, brain = self.controller.get()
             player.brain = brain
+            player.brain.random(0.5)
             while True:
                 started = time.time()
                 re = player.step()
