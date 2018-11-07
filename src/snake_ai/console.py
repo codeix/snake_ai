@@ -2,6 +2,7 @@ import sys
 import gc
 import time
 import pickle
+import argparse
 import datetime
 import itertools
 import threading
@@ -65,21 +66,28 @@ def show():
     print(brain.show())
 
 def ai():
+    parser = argparse.ArgumentParser(description="Playing Snake Game")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-g", "--gui-less", action="store_true", help="Run without GUI")
+    parser.add_argument("brainfile", type=str, nargs='?', help="path to pickle brain file", default=None)
+    args = parser.parse_args()
+
     brain = None
-    if len(sys.argv) == 2:
-        brain = pickle.load(open(sys.argv[1], 'rb'))
-        print('brain loaded from: %s' % sys.argv[1])
-    MainAI(brain).run()
+    if args.brainfile is not None:
+        brain = pickle.load(open(args.brainfile, 'rb'))
+        print('brain loaded from: %s' % args.brainfile)
+    MainAI(brain, not args.gui_less).run()
 
 class MainAI(object):
      
     amount_process = 30
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
-    def __init__(self, brainfile=None):
+    def __init__(self, brainfile=None, has_gui=True):
         self.childs = None
         self.players = collections.OrderedDict()
         self.brainfile = brainfile
+        self.has_gui = has_gui
 
 
     def prepare_process(self, args):
@@ -121,14 +129,17 @@ class MainAI(object):
                 self.players[player.uuid] = player
                 threads.append(Processor(index, player, self))
 
-            if ui_helper is None:
-                ui_helper = ThreadHelper(self.players)
-                ui_helper.start()
-            else:
-                ui_helper.update(self.players)
-            ui_helper.event.wait()
+            if self.has_gui:
+                if ui_helper is None:
+                    ui_helper = ThreadHelper(self.players)
+                    ui_helper.start()
+                else:
+                    ui_helper.update(self.players)
+                ui_helper.event.wait()
+            
             for thread in threads:
-                thread.sg = ui_helper.sg
+                if self.has_gui:
+                    thread.sg = ui_helper.sg
                 thread.start()
 
             for thread in threads:
@@ -157,7 +168,6 @@ class MainAI(object):
                 childs.insert(0, ca)
                 childs.insert(0, cb)
             self.childs = childs[:self.amount_process]
-            
             pickle.dump(childs[0], open(self.dump_name, 'wb'))    
 
 
@@ -192,17 +202,19 @@ class Processor(threading.Thread):
         self.main = main
 
     def run(self):
-        with ProcessorWorker.get_process(self.player) as queue:
+        with ProcessorWorker.get_process(self.player, self.sg is not None) as queue:
             while True:
                 self.player, brain = queue.get()
                 self.main.players[self.player.uuid] = self.player
-                self.sg.setGame(self.player.game, self.index)
+                if self.sg is not None:
+                    self.sg.setGame(self.player.game, self.index)
                 if brain is not None:
                     self.player.brain = brain
                     break
+                if self.sg is not None:
+                    self.sg.update(self.index)
+            if self.sg is not None:
                 self.sg.update(self.index)
-
-            self.sg.update(self.index)
 
 
 class ProcessorWorker(multiprocessing.Process):
@@ -213,23 +225,24 @@ class ProcessorWorker(multiprocessing.Process):
     lock = threading.RLock()
 
 
-    def __init__(self):
+    def __init__(self, has_gui):
         super().__init__()
 
         self.running = False
         self.player = None
+        self.has_gui = has_gui
         self.queue = multiprocessing.Queue()
         self.controller = multiprocessing.Queue()
 
     @staticmethod
-    def get_process(player):
+    def get_process(player, has_gui):
         process = None
         with ProcessorWorker.lock:
             nonrunning = [i for i in ProcessorWorker.pool if not i.running]
             if len(nonrunning) > 0:
                 process = nonrunning[0]
             else:
-                process = ProcessorWorker()
+                process = ProcessorWorker(has_gui)
                 ProcessorWorker.pool.append(process)
                 process.start()
             process.player = player
@@ -258,7 +271,8 @@ class ProcessorWorker(multiprocessing.Process):
                 else:
                     self.queue.put((player, player.brain,))
                     break
-                time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
+                if self.has_gui:
+                    time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
 
 
 
