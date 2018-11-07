@@ -100,6 +100,7 @@ class MainAI(object):
         gen = 0
         ui_helper = None
         started = None
+
         while True:
             started = time.time()
             self.players.clear()
@@ -159,24 +160,6 @@ class MainAI(object):
             
             pickle.dump(childs[0], open(self.dump_name, 'wb'))    
 
-            """
-                if thread.main.winner is None:
-                    thread.main.winner = thread.player
-
-                if len(thread.main.winner.used_directions) < len(thread.player.used_directions):
-                    thread.main.winner = thread.player
-                    continue
-
-                if thread.main.winner.game.score < thread.player.game.score  and len(thread.main.winner.used_directions) <= len(thread.player.used_directions):
-                    thread.main.winner = thread.player
-
-            if self.winner is not None:
-                pickle.dump(self.winner.brain, open(self.dump_name, 'wb'))
-                print('Gen: %s, Sec.: %.3f The winner is: %s score: %s used directions: %s' % (gen, time.time() - started, self.winner, self.winner.game.score, len(self.winner.used_directions)))
-            else:
-                print('Gen %s has no winner' % gen)
-    
-            """
 
 class ThreadHelper(threading.Thread):
 
@@ -207,47 +190,76 @@ class Processor(threading.Thread):
         self.index = index
         self.player = player
         self.main = main
-        self.queue = multiprocessing.Queue()
-        self.worker = ProcessorWorker(player, self.queue)
-
-    def start(self):
-        super().start()
-        self.worker.start()
 
     def run(self):
-        while True:
-            self.player, brain = self.queue.get()
-            self.main.players[self.player.uuid] = self.player
-            self.sg.setGame(self.player.game, self.index)
-            if brain is not None:
-                self.player.brain = brain
-                break
+        with ProcessorWorker.get_process(self.player) as queue:
+            while True:
+                self.player, brain = queue.get()
+                self.main.players[self.player.uuid] = self.player
+                self.sg.setGame(self.player.game, self.index)
+                if brain is not None:
+                    self.player.brain = brain
+                    break
+                self.sg.update(self.index)
+
             self.sg.update(self.index)
-
-        self.sg.update(self.index)
-
-        self.queue.close()
-        self.worker.join()
 
 
 class ProcessorWorker(multiprocessing.Process):
 
     MAX_SLEEP_TIME = 0.08
 
-    def __init__(self, player, queue):
+    pool = list()
+    lock = threading.RLock()
+
+
+    def __init__(self):
         super().__init__()
 
-        self.player = player
-        self.queue = queue
+        self.running = False
+        self.player = None
+        self.queue = multiprocessing.Queue()
+        self.controller = multiprocessing.Queue()
+
+    @staticmethod
+    def get_process(player):
+        process = None
+        with ProcessorWorker.lock:
+            nonrunning = [i for i in ProcessorWorker.pool if not i.running]
+            if len(nonrunning) > 0:
+                process = nonrunning[0]
+            else:
+                process = ProcessorWorker()
+                ProcessorWorker.pool.append(process)
+                process.start()
+            process.player = player
+        return process
+                
+    def __enter__(self):
+        with ProcessorWorker.lock:
+            self.running = True
+            self.controller.put((self.player, self.player.brain,))
+        return self.queue
+
+    def __exit__(self, type, value, traceback):
+        with ProcessorWorker.lock:
+            self.running = False
+        return isinstance(value, TypeError)
 
     def run(self):
         while True:
-            started = time.time()
-            re = self.player.step()
-            if re:
-                self.queue.put((self.player, None,))
-            else:
-                self.queue.put((self.player, self.player.brain,))
-                break
-            time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
+            player, brain = self.controller.get()
+            player.brain = brain
+            while True:
+                started = time.time()
+                re = player.step()
+                if re:
+                    self.queue.put((player, None,))
+                else:
+                    self.queue.put((player, player.brain,))
+                    break
+                time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
+
+
+
 
