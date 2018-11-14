@@ -1,5 +1,6 @@
+import os
 import sys
-import gc
+import neat
 import time
 import pickle
 import argparse
@@ -9,7 +10,7 @@ import threading
 import collections
 import multiprocessing
 
-from copy import deepcopy
+import numpy as nu
 from random import random
 from snake_ai.widget import  SnakeGui
 from snake_ai.game import Game
@@ -19,6 +20,12 @@ from snake_ai.brain import Player
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtCore import QTimer, Qt
 
+try:
+    # pylint: disable=import-error
+    import Queue as queue
+except ImportError:
+    # pylint: disable=import-error
+    import queue
 
 
 def play():
@@ -65,199 +72,129 @@ def show():
     brain = pickle.load(open(path, 'rb' ))
     print(brain.show())
 
-def ai():
-    parser = argparse.ArgumentParser(description="Playing Snake Game")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-g", "--gui-less", action="store_true", help="Run without GUI")
-    parser.add_argument("brainfile", type=str, nargs='?', help="path to pickle brain file", default=None)
-    args = parser.parse_args()
 
-    brain = None
-    if args.brainfile is not None:
-        brain = pickle.load(open(args.brainfile, 'rb'))
-        print('brain loaded from: %s' % args.brainfile)
-    MainAI(brain, not args.gui_less).run()
-
-class MainAI(object):
-     
-    amount_process = 30
-    dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
-
-    def __init__(self, brainfile=None, has_gui=True):
-        self.childs = None
-        self.players = collections.OrderedDict()
-        self.brainfile = brainfile
-        self.has_gui = has_gui
-
-    def run(self):
-        gen = 0
-        ui_helper = None
-        started = None
-
-        while True:
-            started = time.time()
-            self.players.clear()
-            seed = 10#random()
-            gen += 1
-            threads = list()
-
-            if self.childs is None:
-                if self.brainfile is None:
-                    self.childs = [Brain([8*3, 20, 4]) for i in range(self.amount_process)]
-                else:
-                    self.childs = [self.brainfile for i in range(self.amount_process)]
- 
-            for index, brain in enumerate(self.childs):
-                player = Player(brain, seed)
-                self.players[player.uuid] = player
-                threads.append(Processor(index, player, self))
-
-            if self.has_gui:
-                if ui_helper is None:
-                    ui_helper = ThreadHelper(self.players)
-                    ui_helper.start()
-                else:
-                    ui_helper.update(self.players)
-                ui_helper.event.wait()
-            
-            for thread in threads:
-                if self.has_gui:
-                    thread.sg = ui_helper.sg
-                thread.start()
-
-            for thread in threads:
-                thread.join()
-
-            threads.sort(reverse=True, key=lambda t: (not t.player.game.killed, len(t.player.used_directions), len(t.player.game.snake), t.player.game.steps))
+class GuiThread(threading.Thread):
 
 
-            print('\n\n\nGen: %s, Sec.: %.3f' % (gen, time.time() - started))
-            for thread in threads:
-                print('Score: %s Used directions: %s steps: %s snake length: %s crossovered: %s' % (
-                thread.player.game.score,
-                len(thread.player.used_directions),
-                thread.player.game.steps,
-                len(thread.player.game.snake),
-                getattr(thread.player.brain, 'crossovered', '')))
-
-                thread.player.brain.crossovered = False
-
-            bests = threads[:3]
-            childs = [t.player.brain for t in threads]
-            for pairs in itertools.combinations(bests, 2):
-                leftP, rightP = pairs
-                left, right = (leftP.player.brain, rightP.player.brain)
-                ca, cb = Brain.crossover(left, right)
-                childs.insert(0, ca)
-                childs.insert(0, cb)
-            self.childs = childs[:self.amount_process]
-            pickle.dump(childs[0], open(self.dump_name, 'wb'))    
-
-
-class ThreadHelper(threading.Thread):
-
-    def __init__(self, players):
+    def __init__(self):
         super().__init__()
-        self.players = players
         self.event = threading.Event()
         self.event.clear()
-
-    def update(self, players):
-        self.players = players
-        self.sg.setGames([p.game for p in players.values()])
+        self.sleeptime = 0.1
+        self.update_gui = True
 
     def run(self):
+
+        def keylistener(key):
+            if Qt.Key_Up == key:
+                self.sleeptime += 0.01
+            if Qt.Key_Down == key:
+                self.sleeptime = max(0, self.sleeptime-0.01)
+            if Qt.Key_Left == key:
+                self.update_gui = False
+            if Qt.Key_Right == key:
+                self.update_gui = True
+
+
         app = QApplication(sys.argv)
-        self.sg = SnakeGui([p.game for p in self.players.values()])
+        self.sg = SnakeGui([Game(25, 25) for i in range(30)])
+        self.sg.keylistener = keylistener
         self.event.set()
         self.sg.show()
         app.exec_()
 
+guiThread = None
 
-class Processor(threading.Thread):
+def eval_genome(genome_id, genome, config):
+    net = neat.nn.FeedForwardNetwork.create(genome, config)
+    fitnesses = []
 
-    sg = None
+    for runs in range(5):
+        gui_id = (genome_id - 1) % 30
+        game = Game(25, 20)
+        guiThread.sg.setGame(game, gui_id)
+        guiThread.sg.update()
 
-    def __init__(self, index, player, main):
-        super().__init__()
-        self.index = index
-        self.player = player
-        self.main = main
+        # Run the given simulation for up to num_steps time steps.
+        fitness = 0.0
+        while game.move():
+            inputs = game.state()
+            action = net.activate(list(inputs))
+            
+            # Apply action to the simulated cart-pole
+            direction = dict(zip((game.up, game.down, game.left, game.right, ), action))
+            func = max(direction, key=direction.get)
+            func()
+            fitness = game.score
+            if guiThread.update_gui:
+                time.sleep(guiThread.sleeptime)
+                guiThread.sg.update(gui_id)
 
-    def run(self):
-        with ProcessorWorker.get_process(self.player, self.sg is not None) as queue:
-            while True:
-                self.player, brain = queue.get()
-                self.main.players[self.player.uuid] = self.player
-                if self.sg is not None:
-                    self.sg.setGame(self.player.game, self.index)
-                if brain is not None:
-                    self.player.brain = brain
-                    break
-                if self.sg is not None:
-                    self.sg.update(self.index)
-            if self.sg is not None:
-                self.sg.update(self.index)
+        guiThread.sg.update(gui_id)
+        fitnesses.append(fitness)
 
-
-class ProcessorWorker(multiprocessing.Process):
-
-    MAX_SLEEP_TIME = 0.08
-
-    pool = list()
-    lock = threading.RLock()
+    # The genome's fitness is its worst performance across all runs.
+    return nu.median(fitnesses)
 
 
-    def __init__(self, has_gui):
-        super().__init__()
+def eval_genomes(genomes, config):
+    print('\n\n')
+    for genome_id, genome in genomes:
+        genome.fitness = eval_genome(genome_id, genome, config)
+        print('Genome<%s>: %s fitness' % (genome_id, genome.fitness))
 
-        self.running = False
-        self.player = None
-        self.has_gui = has_gui
-        self.queue = multiprocessing.Queue()
-        self.controller = multiprocessing.Queue()
+class ParallelEvaluator(neat.ParallelEvaluator):
+    def evaluate(self, genomes, config):
+        jobs = []
+        for genome_id, genome in genomes:
+            jobs.append(self.pool.apply_async(self.eval_function, (genome, config, genome_id)))
 
-    @staticmethod
-    def get_process(player, has_gui):
-        process = None
-        with ProcessorWorker.lock:
-            nonrunning = [i for i in ProcessorWorker.pool if not i.running]
-            if len(nonrunning) > 0:
-                process = nonrunning[0]
-            else:
-                process = ProcessorWorker(has_gui)
-                ProcessorWorker.pool.append(process)
-                process.start()
-            process.player = player
-        return process
-                
-    def __enter__(self):
-        with ProcessorWorker.lock:
-            self.running = True
-            self.controller.put((self.player, self.player.brain,))
-        return self.queue
+        # assign the fitness back to each genome
+        for job, (ignored_genome_id, genome) in zip(jobs, genomes):
+            genome.fitness = job.get(timeout=self.timeout)
 
-    def __exit__(self, type, value, traceback):
-        with ProcessorWorker.lock:
-            self.running = False
-        return isinstance(value, TypeError)
+class ThreadedEvaluator(neat.ThreadedEvaluator):
+    def _worker(self):
+        """The worker function"""
+        while self.working:
+            try:
+                genome_id, genome, config = self.inqueue.get(
+                    block=True,
+                    timeout=0.2,
+                    )
+            except queue.Empty:
+                continue
+            f = self.eval_function(genome_id, genome, config)
+            self.outqueue.put((genome_id, genome, f))
 
-    def run(self):
-        while True:
-            player, brain = self.controller.get()
-            player.brain = brain
-            player.brain.random(0.5)
-            while True:
-                started = time.time()
-                re = player.step()
-                if re:
-                    self.queue.put((player, None,))
-                else:
-                    self.queue.put((player, player.brain,))
-                    break
-                if self.has_gui:
-                    time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
+def ai():
+    global guiThread
+    guiThread = GuiThread()
+    guiThread.start()
+    guiThread.event.wait()
 
+    # Load the config file, which is assumed to live in
+    # the same directory as this script.
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, 'config-feedforward')
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         config_path) 
+
+    pop = neat.Population(config)
+    stats = neat.StatisticsReporter()
+    pop.add_reporter(stats)
+    pop.add_reporter(neat.StdOutReporter(True))
+
+
+    th = ThreadedEvaluator(30, eval_genome)
+    #pe = ParallelEvaluator(12, eval_genome)
+    winner = pop.run(th.evaluate)#pop.run(eval_genomes)#pop.run(pe.evaluate)
+    # Save the winner.
+    with open('winner-feedforward', 'wb') as f:
+        pickle.dump(winner, f)
+
+    print(winner)
 
 
 
