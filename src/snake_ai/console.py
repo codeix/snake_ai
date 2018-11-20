@@ -38,6 +38,11 @@ def play():
             game.left()
         if Qt.Key_Right == key:
             game.right()
+        if Qt.Key_Space == key:
+            if timer.isActive():
+                timer.stop()
+            else:
+                timer.start()
 
     def processor():
         if not game.move():
