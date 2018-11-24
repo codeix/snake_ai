@@ -1,7 +1,7 @@
 import sys
-import gc
 import time
 import json
+import numpy
 import pickle
 import argparse
 import datetime
@@ -178,7 +178,7 @@ class MainAI(object):
 
             if self.childs is None:
                 if self.brainfile is None:
-                    self.childs = [Brain([8*3, 20, 4]) for i in range(self.amount_process)]
+                    self.childs = [Brain([8*4, 200, 4 + 8]) for i in range(self.amount_process)]
                 else:
                     self.childs = [self.brainfile for i in range(self.amount_process)]
  
@@ -226,6 +226,8 @@ class MainAI(object):
                 childs.insert(0, ca)
                 childs.insert(0, cb)
             self.childs = childs[:self.amount_process]
+
+            print('Variance of all games in this gerneration: %.3f' % numpy.var([i.player.game.score for i in threads]))
             pickle.dump(childs[0], open(self.dump_name, 'wb'))    
 
 
@@ -321,7 +323,7 @@ class ProcessorWorker(multiprocessing.Process):
         while True:
             player, brain = self.controller.get()
             player.brain = brain
-            player.brain.random(0.5)
+            player.brain.random(0.2)
             while True:
                 started = time.time()
                 re = player.step()

@@ -16,6 +16,7 @@ class Player(object):
         self.uuid = uuid.uuid1()
         self.game = Game(30, 25, seed)
         self.used_directions = set()
+        self.saved = [0,0,0,0,0,0,0,0]
         if brain is None:
             self.brain = Brain([30*25*3, 500, 500, 50, 4])
             self.brain.random()
@@ -33,8 +34,9 @@ class Player(object):
 
 
     def step(self):
-        out = self.brain.apply(self.game.state())
-        direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out))
+        out = self.brain.apply(itertools.chain(self.game.state(),  self.saved ))
+        self.saved = out[-8:]
+        direction = dict(zip((self.game.up, self.game.down, self.game.left, self.game.right, ), out[:4]))
         func = max(direction, key=direction.get)
         func()
         self.used_directions.add(func)
