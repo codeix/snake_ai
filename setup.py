@@ -46,9 +46,10 @@ setup(name='snake_ai',
       test_suite='__main__.alltests', 
       install_requires=[
           'setuptools',
-          'pyqt5==5.10',
+          'PyQt5-sip',
           'numpy',
           'pympler',
+          'GephiStreamer'
           # -*- Extra requirements: -*-
       ],
       tests_require=[
@@ -58,7 +59,8 @@ setup(name='snake_ai',
           'console_scripts': [
               'play = snake_ai.console:play',
               'ai = snake_ai.console:ai',
-              'show = snake_ai.console:show'
+              'show = snake_ai.console:show',
+              'gephi = snake_ai.console:gephi'
           ],
       },
       )

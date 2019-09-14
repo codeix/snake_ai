@@ -9,6 +9,9 @@ import threading
 import collections
 import multiprocessing
 
+from gephistreamer import graph
+from gephistreamer import streamer
+
 from copy import deepcopy
 from random import random
 from snake_ai.widget import  SnakeGui
@@ -70,10 +73,18 @@ def show():
     brain = pickle.load(open(path, 'rb' ))
     print(brain.show())
 
+def gephi():
+    if len(sys.argv) != 2:
+        print('path to brain file must given as argument')
+        sys.exit(1)
+    path = sys.argv[1]
+    brain = pickle.load(open(path, 'rb' ))
+    import pdb;pdb.set_trace()
+
 def ai():
     parser = argparse.ArgumentParser(description="Playing Snake Game")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-g", "--gui-less", action="store_true", help="Run without GUI")
+    parser.add_argument("-g", "--gui-less", action="store_true", help="Run without GUI")
+    parser.add_argument("-s", "--stream", action="store_true", help="Run Gephi Stream on localhost 8080")
     parser.add_argument("brainfile", type=str, nargs='?', help="path to pickle brain file", default=None)
     args = parser.parse_args()
 
@@ -81,18 +92,44 @@ def ai():
     if args.brainfile is not None:
         brain = pickle.load(open(args.brainfile, 'rb'))
         print('brain loaded from: %s' % args.brainfile)
-    MainAI(brain, not args.gui_less).run()
+    stream = None
+    if args.stream:
+        stream = streamer.Streamer(streamer.GephiREST(workspace="workspace1"))
+        print("Created gephi stream on workspace1")
+    MainAI(brain, not args.gui_less, stream).run()
+
 
 class MainAI(object):
      
     amount_process = 30
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
-    def __init__(self, brainfile=None, has_gui=True):
+    def __init__(self, brainfile=None, has_gui=True, stream=None):
         self.childs = None
         self.players = collections.OrderedDict()
         self.brainfile = brainfile
         self.has_gui = has_gui
+        self.stream = stream
+        self.firstrun = False
+
+    def gephi(self, brain, update=False):
+        nodes = dict()
+        for i, n in enumerate(brain.inputs):
+            nodes[id(n)] = i
+        for i, n in enumerate(brain.neurons()):
+            nodes[id(n)] = i
+        if update:
+            self.stream.change_node(*[graph.Node(nodes[id(n)]) for n in brain.neurons()])
+        else:
+            self.stream.add_node(*[graph.Node(nodes[id(n)]) for n in brain.neurons()])
+        edges = list()
+        for n in brain.neurons():
+            for k,v in n.weights.items():
+                edges.append(graph.Edge(nodes[id(n)], nodes[id(k)], weight=v, directed=True, kind=n.__class__.__name__))
+        if update:
+            self.stream.change_edge(*edges)
+        else:
+            self.stream.add_edge(*edges)
 
     def run(self):
         gen = 0
@@ -156,8 +193,12 @@ class MainAI(object):
                 childs.insert(0, ca)
                 childs.insert(0, cb)
             self.childs = childs[:self.amount_process]
+
             pickle.dump(childs[0], open(self.dump_name, 'wb'))    
 
+            if self.stream is not None:
+                self.gephi(childs[0], self.firstrun)
+            self.firstrun = True
 
 class ThreadHelper(threading.Thread):
 
