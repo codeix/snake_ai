@@ -100,7 +100,7 @@ def ai():
 
 
 class MainAI(object):
-     
+    gephi_space_fac = 5 
     amount_process = 30
     dump_name = '%s.brain.dump' % datetime.datetime.today().strftime('%Y%m%d_%H%M')
 
@@ -112,6 +112,15 @@ class MainAI(object):
         self.stream = stream
         self.firstrun = False
 
+    def create_node(self, node, node_id, brain):
+        if node in brain.inputs:
+            conf = dict(label=node.__class__.__name__, y=node_id * self.gephi_space_fac, x=0, green=1.0)
+        elif node in brain.layers[-1]:
+            conf = dict(label=node.__class__.__name__, y=node_id * self.gephi_space_fac, x=len(brain.layers) * 2 * self.gephi_space_fac, green=1.0)
+        else:
+            conf = dict(label=node.__class__.__name__)
+        return graph.Node(node_id, **conf)
+
     def gephi(self, brain, update=False):
         nodes = dict()
         for i, n in enumerate(brain.inputs):
@@ -119,9 +128,9 @@ class MainAI(object):
         for i, n in enumerate(brain.neurons()):
             nodes[id(n)] = i
         if update:
-            self.stream.change_node(*[graph.Node(nodes[id(n)]) for n in brain.neurons()])
+            self.stream.change_node(*[self.create_node(n, nodes[id(n)], brain) for n in itertools.chain(brain.inputs, brain.neurons())])
         else:
-            self.stream.add_node(*[graph.Node(nodes[id(n)]) for n in brain.neurons()])
+            self.stream.add_node(*[self.create_node(n, nodes[id(n)], brain) for n in itertools.chain(brain.inputs, brain.neurons())])
         edges = list()
         for n in brain.neurons():
             for k,v in n.weights.items():
