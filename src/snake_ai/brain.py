@@ -47,6 +47,9 @@ class AbstractNeuron(object):
         self.weights = None
         self.cache = None
 
+    def  name(self):
+        return '%s-%s' % (self.__class__.__name__, id(self))
+
     def relations(self, neurons, default_weight=0.01):
         self.weights = OrderedDict()
         for neuron in neurons:

@@ -1,6 +1,7 @@
 import sys
 import gc
 import time
+import json
 import pickle
 import argparse
 import datetime
@@ -61,14 +62,71 @@ def play():
     sg.show()
     sys.exit(app.exec_())
 
-
-def show():
+def read_brain_ctl():
     if len(sys.argv) != 2:
         print('path to brain file must given as argument')
         sys.exit(1)
     path = sys.argv[1]
-    brain = pickle.load(open(path, 'rb' ))
+    return pickle.load(open(path, 'rb' )), path
+
+def show():
+    brain, path = read_brain_ctl()
     print(brain.show())
+
+def export():
+    brain, path = read_brain_ctl()
+    nodes = list()
+    edges = list()
+    for node in itertools.chain(brain.inputs, brain.neurons()):
+        jsnode = {
+                "data" : {
+                    "id" : str(id(node)),
+                    "shared_name" : node.name(),
+                    "name" : node.name(),
+                    "SUID" : id(node),
+                    "type" : node.__class__.__name__,
+                    "selected" : False
+                    },
+                "selected" : False
+                }
+        nodes.append(jsnode)
+        if not hasattr(node, 'weights') or node.weights is None:
+            continue
+        for index, (rel, weight) in enumerate(node.weights.items()):
+            jsedge = {
+                    "data" : {
+                    "id" : str(index),
+                    "source" : str(id(rel)),
+                    "target" : str(id(node)),
+                    "shared_name" : f"{rel.name()} to {node.name()}",
+                    "name" : f"{rel.name()} to {node.name()}",
+                    "interaction" : "interacts with",
+                    "SUID" : index,
+                    "weight" : weight,
+                    "shared_interaction" : "interacts with",
+                    "selected" : False
+                    }
+                    }
+            edges.append(jsedge)
+    output = {"format_version" : "1.0",
+            "generated_by" : "cytoscape-3.7.2",
+            "target_cytoscapejs_version" : "~2.1",
+            "data" : {
+                "shared_name" : path,
+                "name" : path,
+                "SUID" : 728,
+                "__Annotations" : [ ],
+                "selected" : True
+                },
+            "elements" : {
+                "nodes": nodes,
+                "edges": edges}}
+    with open(f'{path}.cyjs', 'w') as fp:
+        json.dump(output, fp)
+
+
+
+
 
 def ai():
     parser = argparse.ArgumentParser(description="Playing Snake Game")

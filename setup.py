@@ -58,7 +58,8 @@ setup(name='snake_ai',
           'console_scripts': [
               'play = snake_ai.console:play',
               'ai = snake_ai.console:ai',
-              'show = snake_ai.console:show'
+              'show = snake_ai.console:show',
+              'export = snake_ai.console:export'
           ],
       },
       )
