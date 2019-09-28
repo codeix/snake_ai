@@ -74,9 +74,20 @@ def show():
     print(brain.show())
 
 def export():
+    posfactorx = 1000.
+    posfactory = 100.
     brain, path = read_brain_ctl()
     nodes = list()
     edges = list()
+    positions = dict()
+    
+    for index, node in enumerate(brain.inputs):
+        positions[node] = dict(x=0, y=index*posfactory)
+
+    for xi, layer in enumerate(brain.layers):
+        for yi, node in enumerate(layer):
+            positions[node] = dict(x=(xi+1)*posfactorx, y=yi*posfactory)
+
     for node in itertools.chain(brain.inputs, brain.neurons()):
         jsnode = {
                 "data" : {
@@ -87,6 +98,7 @@ def export():
                     "type" : node.__class__.__name__,
                     "selected" : False
                     },
+                "position" : positions[node],
                 "selected" : False
                 }
         nodes.append(jsnode)
