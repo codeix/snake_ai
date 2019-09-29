@@ -2,6 +2,7 @@ import sys
 import gc
 import time
 import json
+import code
 import pickle
 import argparse
 import datetime
@@ -72,6 +73,15 @@ def read_brain_ctl():
 def show():
     brain, path = read_brain_ctl()
     print(brain.show())
+
+def console():
+    brain, path = read_brain_ctl()
+    def save(name):
+        if not name:
+            raise "name is empty"
+        pickle.dump(brain, open('%s.brain.dump' % name, 'wb'))
+    code.interact(banner='You can access the brain with the global "brain".\n Use the method "save(name)" to save the brain as file with the given name.',
+            local=dict(brain=brain, save=save))
 
 def export():
     posfactorx = 1000.
