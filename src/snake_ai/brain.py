@@ -46,6 +46,7 @@ class AbstractNeuron(object):
     def __init__(self):
         self.weights = None
         self.cache = None
+        self.uuid = uuid.uuid1()
 
     def  name(self):
         return '%s-%s' % (self.__class__.__name__, id(self))
@@ -94,6 +95,7 @@ class AbstractNeuron(object):
 class InputNeuron(AbstractNeuron):
 
     def __init__(self, index, data):
+        super().__init__()
         self.index = index
         self.data = data
 
@@ -179,10 +181,21 @@ class Brain(object):
                 st += '%.4i: %s\n' %(j, repr(neuron))
         return st
 
+    def restore_uuid(self, brain):
+        iterator = zip(itertools.chain(self.inputs, self.neurons()),
+                itertools.chain(brain.inputs, brain.neurons()))
+        for left, right in iterator:
+            left.uuid = right.uuid
+
+
     @staticmethod
     def crossover(paBrain, pbBrain, seed=None):
         caBrain = Brain(paBrain.structure, paBrain.classNeuron)
         cbBrain = Brain(paBrain.structure, paBrain.classNeuron)
+
+        caBrain.restore_uuid(paBrain)
+        cbBrain.restore_uuid(pbBrain)
+
         lenght = sum(1 for x in paBrain.neurons())
 
         if seed is None:

@@ -70,6 +70,16 @@ def read_brain_ctl():
     path = sys.argv[1]
     return pickle.load(open(path, 'rb' )), path
 
+def read_multi_brain_ctl():
+    if len(sys.argv) <= 1:
+        print('at least one path to brain must given')
+        sys.exit(1)
+    brains = list()
+    for i in range(1, len(sys.argv)):
+        path = sys.argv[i]
+        brains.append(pickle.load(open(path, 'rb' )))
+    return brains, sys.argv[1]
+
 def show():
     brain, path = read_brain_ctl()
     print(brain.show())
@@ -86,11 +96,13 @@ def console():
 def export():
     posfactorx = 1000.
     posfactory = 100.
-    brain, path = read_brain_ctl()
+    brains, path = read_multi_brain_ctl()
+    brain = brains.pop(0)
     nodes = list()
     edges = list()
+    uuids = dict()
     positions = dict()
-    
+
     for index, node in enumerate(brain.inputs):
         positions[node] = dict(x=0, y=index*posfactory)
 
@@ -98,10 +110,13 @@ def export():
         for yi, node in enumerate(layer):
             positions[node] = dict(x=(xi+1)*posfactorx, y=yi*posfactory)
 
+    for dbrain in brains:
+        uuids[dbrain] = dict([(b.uuid, b) for b in itertools.chain(dbrain.inputs, dbrain.neurons())])
+
     for node in itertools.chain(brain.inputs, brain.neurons()):
         jsnode = {
                 "data" : {
-                    "id" : str(id(node)),
+                    "id" : str(node.uuid),
                     "shared_name" : node.name(),
                     "name" : node.name(),
                     "SUID" : id(node),
@@ -118,8 +133,8 @@ def export():
             jsedge = {
                     "data" : {
                     "id" : str(index),
-                    "source" : str(id(rel)),
-                    "target" : str(id(node)),
+                    "source" : str(rel.uuid),
+                    "target" : str(node.uuid),
                     "shared_name" : f"{rel.name()} to {node.name()}",
                     "name" : f"{rel.name()} to {node.name()}",
                     "interaction" : "interacts with",
@@ -130,6 +145,12 @@ def export():
                     }
                     }
             edges.append(jsedge)
+
+            for dindex, dbrain in enumerate(brains):
+                dweight = list(uuids[dbrain][node.uuid].weights.values())[index]
+                diff = dweight - weight
+                jsedge['data']['diff%s' % dindex] = diff
+
     output = {"format_version" : "1.0",
             "generated_by" : "cytoscape-3.7.2",
             "target_cytoscapejs_version" : "~2.1",
@@ -342,7 +363,4 @@ class ProcessorWorker(multiprocessing.Process):
                     break
                 if self.has_gui:
                     time.sleep(max(self.MAX_SLEEP_TIME - time.time() + started, 0))
-
-
-
 
