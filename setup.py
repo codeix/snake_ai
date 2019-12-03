@@ -60,7 +60,8 @@ setup(name='snake_ai',
               'ai = snake_ai.console:ai',
               'show = snake_ai.console:show',
               'export = snake_ai.console:export',
-              'console = snake_ai.console:console'
+              'console = snake_ai.console:console',
+              'image = snake_ai.image:gen'
           ],
       },
       )

@@ -63,7 +63,7 @@ class AbstractNeuron(object):
             else:
                 new = self.weights[k] + (random.random()/100*percentage) - (percentage/100.0/2)
                 new = min(new, 1)
-                new = max(new, 0)
+                new = max(new, -1)
                 self.weights[k] = new
 
     def set_weights(self, values):
@@ -114,6 +114,17 @@ class TanHNeuron(AbstractNeuron):
     def activation(self, value):
          return nu.tanh(value)
 
+class TanHNeuronRand(AbstractNeuron):
+    tanhp = lambda s, v: nu.tanh(v)
+    tanhm = lambda s, v: -nu.tanh(v)
+
+
+    def __init__(self):
+        super().__init__()
+        self.tanh = random.choice((self.tanhp, self.tanhm,))
+
+    def activation(self, value):
+        return self.tanh(value)
 
 class BiasNeuron(AbstractNeuron):
 
@@ -122,7 +133,7 @@ class BiasNeuron(AbstractNeuron):
 
 class Brain(object):
     
-    def __init__(self, structure, classNeuron=TanHNeuron):
+    def __init__(self, structure, classNeuron=TanHNeuronRand):
         self.layers = list()
         self.inputs = Layer()
         self.data = Data()
@@ -147,10 +158,10 @@ class Brain(object):
             if (index > 0):
                 prev_layer = self.layers[index-1]
                 for neuron in layer:
-                    neuron.relations(prev_layer)
+                    neuron.relations(prev_layer, 0)
             else:
                 for j, neuron in enumerate(layer):
-                    neuron.relations([self.inputs[j]])
+                    neuron.relations([self.inputs[j]], 0)
 
     def neurons(self):
         return itertools.chain(*self.layers)
